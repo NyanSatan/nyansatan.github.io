@@ -57,10 +57,10 @@ You won't have any issues with '-P' flag, if your first iOS version is older tha
 It looks to HFS header. uint32_t at 0x4 is "attributes" (more info about HFS+ volume structure available <a href="http://dubeyko.com/development/FileSystems/HFSPLUS/hexdumps/hfsplus_volume_header.html">here</a>). When volume isn't protected, first byte of attributes is 0x80, but when it's protected, first byte is 0xC0. 
 <h3>So, what should I do?</h3>
 <ol type="1">
-  <li>First of all, you need to create unprotected volume on Data-partition</li>
+  <li>First of all, you need to create unprotected HFS on Data-partition</li>
   <li>Then move your <code>/private/var/*</code> to it</li>
   <li>Remove files at <code>mobile/Library/PreinstalledAssets</code> and <code>SweepStore</code> at <code>log/asl</code></li>
-  <li>Unmount volume</li>
+  <li>Unmount this partition</li>
   <li>Replace 0x80 by 0xC0 in HFS header</li>
   <li>Never mount it again on iOS 9+</li>
 </ol>
