@@ -54,7 +54,7 @@ You won't have any issues with '-P' flag, if your first iOS version is older tha
 <h1>Solution</h1>
 <img src="header_comparsion.png" alt="Header comparsion" class="align">
 <h3>How does iOS detect whether volume is protected or it's not?</h3>
-It looks to HFS header. uint32_t at 0x4 is "attributes". When volume isn't protected, first byte of attributes is 0x80, but when it's protected, first byte is 0xC0. 
+It looks to HFS header. uint32_t at 0x4 is "attributes" (more info about HFS+ volume structure available <a href="http://dubeyko.com/development/FileSystems/HFSPLUS/hexdumps/hfsplus_volume_header.html">here</a>). When volume isn't protected, first byte of attributes is 0x80, but when it's protected, first byte is 0xC0. 
 <h3>So, what should I do?</h3>
 <ol type="1">
   <li>First of all, you need to create unprotected volume on Data-partition</li>
