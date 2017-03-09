@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<meta charset="UTF-8">
+<title>Dealing with data protection on iOS 9 + 6 dual boots</title>
+
+<style>
+
+div.main {
+	
+	font-family: Helvetica;
+	max-width: 600px;
+	margin:0 auto;
+}
+
+span.note {
+
+    background-color: gray;
+}
+
+img.align {
+	
+	max-width: 100%;
+  	max-height: 100%;
+	margin-left: auto; 
+	margin-right: auto;
+	display: block;
+}
+
+</style>
+</head>
+<body>
+<div class="main">
+<h1>Introduction</h1>
+If you want your dualbooted system to work properly, your HFS on Data-partition must be protected.<br><br>
+<img src="devnodes.png" alt="Dev nodes" class="align">
+<h3>What does it mean?</h3>
+If volume has "protect" attribute, iOS will encrypt data on it.<br><br>
+HFS on Data-partition in iOS must have this flag, otherwise applications which use data protection (these are most of applications, by the way) will crash.<br><br>
+<img src="crash.jpg" alt="Crash" class="align">
+<h3>How can I make my FS to be protected?</h3>
+Just pass '-P' flag to <code>newfs_hfs</code>, when you create your FS. 
+
+
+<h1>Problem</h1>
+You won't have any issues with '-P' flag, if your first iOS version is older than 9.0. But on newer versions this flag will cause terrible issue: 
+<blockquote class="twitter-tweet" data-conversation="none" data-lang="en" align=center><p lang="en" dir="ltr"><a href="https://twitter.com/nyan_satan">@nyan_satan</a> <a href="https://twitter.com/danzatt">@danzatt</a> <a href="https://twitter.com/iApeiron">@iApeiron</a> when you set the protect flag (and mount) from an iOS 9+ OS, the partition will not mount from lower OS’s</p>&mdash; Jonathan Seals (@JonathanSeals) <a href="https://twitter.com/JonathanSeals/status/819284566825279488">January 11, 2017</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+<br>
+(Mounting and writing to second OS's Data volume is necessary part of dualboot's setup) 
+
+
+<h1>Solution</h1>
+<img src="header_comparsion.png" alt="Header comparsion" class="align">
+<h3>How does iOS detect whether volume is protected or it's not?</h3>
+It looks to HFS header. uint32_t at 0x4 is "attributes". When volume isn't protected, first byte of attributes is 0x80, but when it's protected, first byte is 0xC0. 
+<h3>So, what should I do?</h3>
+<ol type="1">
+  <li>First of all, you need to create unprotected volume on Data-partition</li>
+  <li>Then move your <code>/private/var/*</code> to it</li>
+  <li>Remove files at <code>mobile/Library/PreinstalledAssets</code> and <code>SweepStore</code> at <code>log/asl</code></li>
+  <li>Unmount volume</li>
+  <li>Replace 0x80 by 0xC0 in HFS header</li>
+  <li>Never mount it again on iOS 9+</li>
+</ol>
+<br>
+<b>Important note:</b> after convertion file's contents will be destroyed, but directories, symlinks and their attributes will stay safe. That's why we delete all files before
+<br><br>
+
+</div>
+
+</body>
+</html>
