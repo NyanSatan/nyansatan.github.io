@@ -38,7 +38,7 @@ If you want your dualbooted system to work properly, your HFS on Data-partition 
 <h3>What does it mean?</h3>
 If volume has "protect" attribute, iOS will encrypt data on it.<br><br>
 HFS on Data-partition in iOS must have this flag, otherwise applications which use data protection (these are most of applications, by the way) will crash.<br><br>
-<img src="crash.jpg" alt="Crash" class="align">
+<img src="crash.png" alt="Crash" class="align">
 <h3>How can I make my FS to be protected?</h3>
 Just pass '-P' flag to <code>newfs_hfs</code>, when you create your FS. 
 
