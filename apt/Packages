@@ -15,17 +15,17 @@ Icon: file:///Applications/WayOut.app/icon@2x.png
 Name: Way Out
 
 Package: com.nyansatan.dualbootstuff
-Version: 1.0
+Version: 1.0.1
 Architecture: iphoneos-arm
 Maintainer: Nyan Satan
-Installed-Size: 1064
+Installed-Size: 1057
 Filename: .//deb_files/dualbootstuff.deb
-Size: 492420
-MD5sum: 3378bd3f7d10f2ed22110dabf0f2e1cb
-SHA1: ea9a852920da3b9969822db599236a0afb8efb0b
-SHA256: cf91d6979f428531ae7c9896fc5cc01fcc7cf078371dee2dd98b8e5be6bf5658
+Size: 491520
+MD5sum: 282f8276afae3df9c0527982d239d6ac
+SHA1: 89dcc2c376863a876f12aece854bd41a083a7bac
+SHA256: 6f71bded9317ca2c1644afc6a659a57fab8489dc050b3d9472f740096c34905e
 Section: System
-Description: Package of tools for iOS dualbooting. It contains hfs_resize, gptfdisk, kloader, multi_kloader, attach, detach, NoMoreSIGABRT, fixkeybag and some /etc files
+Description: Package of tools for iOS dualbooting. It contains hfs_resize, gptfdisk, ASR, kloader, multi_kloader, attach, detach, NoMoreSIGABRT, fixkeybag and some /etc files
 Author: @danzatt, @winocm, @xerub, @JonathanSeals, @Apple, @comex, Roderick W. Smith, @nyan_satan
 Name: dualbootstuff
 
