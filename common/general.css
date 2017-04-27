@@ -1,10 +1,11 @@
+
 body {
 
    	margin:0 auto;
 	padding: 0;
    	height:100%;
 	font-family: Helvetica;
-	max-width: 768px;
+	
 }
 
 div.main {
@@ -44,8 +45,9 @@ footer {
     	width: 100%;
     	overflow:hidden;
 	text-align: center;
+	color: white;
 	line-height: 30px;
-	background-color: #f3f3f3;
+	background-color: #24344f;
 }
 
 img.align {
@@ -55,4 +57,30 @@ img.align {
 	margin-left: auto; 
 	margin-right: auto;
 	display: block;
+}
+
+a.menu {
+
+	text-decoration: none;
+	color: black;
+}
+
+p.cli {
+
+	background-color: #F0F0F0;
+	padding: 10px;
+	border-radius: 5px;
+	font-family: Courier;
+	word-wrap: break-word;
+
+}
+
+span.cli {
+
+	background-color: #F0F0F0;
+	padding: 1px;
+	border-radius: 5px;
+	font-family: Courier;
+	word-wrap: break-word;
+
 }

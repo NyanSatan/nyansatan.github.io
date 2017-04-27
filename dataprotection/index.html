@@ -2,7 +2,7 @@
 <html lang="en-US">
 <head>
 
-<link rel="icon" href="https://nyansatan.github.io/apple-touch-icon.png">
+<link rel="icon" href="../apple-touch-icon.png">
 <link rel="stylesheet" type="text/css" href="../common/general.css">
 
 <meta charset="UTF-8">
@@ -25,7 +25,7 @@ HFS on Data-partition in iOS must have this flag, otherwise applications which u
 <img src="crash.png" alt="Crash" class="align">
 
 <h3>How can I make my FS to be protected?</h3>
-Just pass '-P' flag to <code>newfs_hfs</code>, when you create your FS. 
+Just pass '-P' flag to <span class="cli">newfs_hfs</span>, when you create your FS. 
 
 
 <h1>Problem</h1>
@@ -45,8 +45,8 @@ It looks to HFS header. uint32_t at 0x4 is "attributes" (more info about HFS+ vo
 <h3>So, what should I do?</h3>
 <ol type="1">
   <li>First of all, you need to create unprotected HFS on Data-partition</li>
-  <li>Then move your <code>/private/var/*</code> to it</li>
-  <li>Remove files at <code>mobile/Library/PreinstalledAssets</code> and <code>SweepStore</code> at <code>log/asl</code></li>
+  <li>Then move your <span class="cli">/private/var/*</span> to it</li>
+  <li>Remove files at <span class="cli">mobile/Library/PreinstalledAssets</span> and <span class="cli">SweepStore</span> at <span class="cli">log/asl</span></li>
   <li>Unmount this partition</li>
   <li>Replace 0x80 by 0xC0 in HFS header</li>
   <li>Never mount it again on iOS 9+</li>
@@ -60,11 +60,10 @@ Video demonstration is available <a href="https://youtu.be/BalJrMjrKwY">here</a>
 </div>
 
 <footer>
-<div class="separator"></div>
 Nyan Satan, 2017<br>
-<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=40 width=40></a>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
 <a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
-<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
 </footer>
 
 </body>
