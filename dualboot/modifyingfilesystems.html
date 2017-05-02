@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, minimum-scale=1, maximum-scale=1">
+
+<title>iOS Dualboot - Modifying filesystems</title>
+
+</head>
+
+<body>
+
+<div class="main">
+<h1>Modifying filesystems</h1>
+After we successfully restored RootFS, we need to make few changes: move <span class="cli">/private/var/*</span> to Data-partition, patch fstab, install fixkeybag, add bootchain files, remove OTA daemons and cope with data-protection issues
+<h2>Moving /private/var/*</h2>
+Unmount <span class="cli">/dev/disk0s1s4</span> if it was mounted:
+<p class="cli">umount /mnt2</p>
+Mount System partition:
+<p class="cli">mount_hfs /dev/disk0s1s3 /mnt1</p>
+This message will immediately appear on device's screen:<br><br>
+<img class="align" src="resources/storage.png"><br>
+
+Now your tactic will depend on first iOS version
+<h3>For pre-iOS 9</h3>
+Regenerate HFS on second partition, but with <span class="cli">-P</span> flag now:
+<p class="cli">/sbin/newfs_hfs -s -v Data -J -P -b bsize -n a=bsize,c=bsize,e=bsize /dev/disk0s1s4</p>
+<div class="desc">Where <span class="cli">bsize</span> is value of your device's blocksize, obviously</div><br>
+Mount it:
+<p class="cli">mount_hfs /dev/disk0s1s4 /mnt2</p>
+Move <span class="cli">/private/var/*</span> to <span class="cli">/mnt2</span>:
+<p class="cli">mv -v /mnt1/private/var/* /mnt2</p>
+Remove all files, their contents will be destroyed anyway due to <b><i>no-effaceable-storage</i></b> Device Tree patch we'll make in the next part. Directories and symlinks must be left alone though:
+<p class="cli">rm -rf /mnt2/log/asl/SweepStore<br>rm -rf /mnt2/mobile/Library/PreinstalledAssets/*</p>
+Unmount <span class="cli">/dev/disk0s1s4</span>:
+<p class="cli">umount /mnt2</p>
+
+<h3>For iOS 9+</h3>
+There is a nuance in iOS 9's data-protection model - if you  mount protected (generated with <span class="cli">-P</span> flag, as we have done for pre-iOS 9) HFS volume, it won't ever mount on previous OS versions. I've found workaround - first, we'll create and mount unprotected volume, then perform required modifications and after it convert volume to make it protected. Read my tiny <a href="https://nyansatan.github.io/dataprotection/">write-up</a> for more information about conversion and volume protection's purpose<br><br>
+So, let's start<br><br>
+Recreate HFS on second partition, but without <span class="cli">-P</span> flag:
+<p class="cli">/sbin/newfs_hfs -s -v Data -J -b bsize -n a=bsize,c=bsize,e=bsize /dev/disk0s1s4</p>
+<div class="desc">Where <span class="cli">bsize</span> is value of your device's blocksize, obviously</div><br>
+Mount it:
+<p class="cli">mount_hfs /dev/disk0s1s4 /mnt2</p>
+Move <span class="cli">/private/var/*</span> to <span class="cli">/mnt2</span>:
+<p class="cli">mv -v /mnt1/private/var/* /mnt2</p>
+Remove all files, their contents will be destroyed after conversion anyway:
+<p class="cli">rm -rf /mnt2/log/asl/SweepStore<br>rm -rf /mnt2/mobile/Library/PreinstalledAssets/*</p>
+Unmount <span class="cli">/dev/disk0s1s4</span>:
+<p class="cli">umount /mnt2</p>
+Convert it using <b>NoMoreSIGABRT</b> to make it protected:
+<p class="cli">NoMoreSIGABRT disk0s1s4</p>
+<img class="align" src="resources/conversion.png"><br>
+<b>Never mount it again</b><br>
+<h2>Patching fstab</h2>
+We have to patch this file to make second iOS mount <span class="cli">/dev/disk0s1s3</span> as root filesystem (<span class="cli">/</span>) and <span class="cli">/dev/disk0s1s4</span> as <span class="cli">/private/var</span>:
+<p class="cli">nano /mnt1/private/etc/fstab</p>
+Turn this...<br><br>
+<img class="align" src="resources/fstab.png"><br>
+...to this<br><br>
+<img class="align" src="resources/fstab_p.png"><br>
+Then press <span class="cli">Ctrl+O</span> to save changes and <span class="cli">Ctrl+X</span> to exit <b>nano</b><br>
+<h2>Removing OTA daemons</h2>
+That would be really strange if you want to update your newly installed iOS 6, so it's better to remove OTA daemons to prevent waste of disk space and annoying notifications. Also, OTA won't work properly anyway <br><br>
+Delete following files:
+<p class="cli">rm -rf /mnt1/System/Library/PrivateFrameworks/MobileSoftwareUpdate.framework/Versions/A/Resources/softwareupdated /mnt1/System/Library/PrivateFrameworks/SoftwareUpdateServices.framework/Support/softwareupdateservicesd /mnt1/System/Library/CoreServices/OTACrashCopier /mnt1/usr/libexec/OTATaskingAgent</p>
+Remove this array (it's usually third) from <span class="cli">/mnt1/Applications/Preferences.app/General.plist</span>. <i>Software update</i> cell will disappear from <b>Settings</b> app:<br><br>
+<img class="align" src="resources/plist.png">
+<h2>Installing fixkeybag</h2>
+<b>Important note</b>: I highly recommend to test <b><i>no-effaceable-storage</i></b> patch first and only after install it. If you'll fail with this patch, fixkeybag will destroy your first iOS, so you will be forced to restore. We'll talk about patch and its purpose in next part<br><br>
+<i><b>fixkeybag</b> - tiny program which generate new system keybags by invoking function from <b>MobileKeyBag.framework</b>, just like native restore daemon does. Without system keybag iOS won't start. To learn more about system keybags appointment and whole iOS data-protection model read <a href="http://esec-lab.sogeti.com/static/publications/11-hitbamsterdam-iphonedataprotection.pdf">this</a></i><br><br>
+Download <b>fixkeybag</b> from <a href="https://github.com/NyanSatan/fixkeybag">GitHub</a>, build it and copy to <span class="cli">/mnt1</span>. Or simply copy it from <b>dualbootstuff</b> package:
+<p class="cli">cp -a /usr/share/dualbootstuff/fixkeybag /mnt1</p>
+Don't forget about UNIX permissions, they should be 755<br><br>
+Then create <span class="cli">/mnt1/private/etc/launchd.conf</span>:
+<p class="cli">nano /mnt1/private/etc/launchd.conf</p>
+...with following contents<br><br>
+<img class="align" src="resources/launchd.png"><br>
+Press <span class="cli">Ctrl+O</span> to save changes and <span class="cli">Ctrl+X</span> to exit <b>nano</b><br>
+<h2>Packing baseband firmware</h2>
+If you have iPhone 4S or newer device (excluding iPods and Wi-Fi-only iPads, obviously), you have to pack baseband files into ZIP-archive and copy it to second OS'es root filesystem<br><br>
+First, go to original bbfw directory:
+<p class="cli">cd /usr/local/standalone/firmware/Baseband/MavX/</p>
+<div class="desc">Where <span class="cli">X</span> is number. It's <span class="cli">5</span> in case of iPhone 5, but may be different on other devices. Check it before executing</div><br>
+Create directory hierarchy on <span class="cli">/mnt1</span>:
+<p class="cli">mkdir -p /mnt1/usr/local/standalone/firmware/Baseband/MavX</p>
+ZIP bbfw:
+<p class="cli">zip -r0 /mnt1/usr/local/standalone/firmware/Baseband/MavX/MavX-personalized.zip *</p>
+<h2>Adding bootchain files</h2>
+Since we'll use OTA routines to untether our dualboot, we have to place Apple logo, Device Tree, ramdisk and kernelcache (as decrypted IMG3 containers, not raw files, obviously) at root directory of third partition<br><br>
+<i>As I mentioned somewhere before, <b>xpwntool</b> often produce broken IMG3 files (especially kernelcaches and logos) in my case. So I'll use <b>reimagine</b> instead, because I've never had any issues with it</i><br><br>
+In this part, we'll only decrypt kernelcache, ramdisk and logo. Device Tree requires patching and we talk about it in the next part<br><br>
+Let's begin<br><br>
+Decrypt Apple logo:
+<p class="cli">reimagine original_logo applelogo -iv iv -k key</p>
+Decrypt ramdisk:
+<p class="cli">reimagine original_ramdisk ramdisk -iv iv -k key</p>
+<div class="desc">Both update and restore ramdisks should work, it doesn't matter</div><br>
+Decrypt kernelcache:
+<p class="cli">reimagine original_kernelcache kernelcache -iv iv -k key</p>
+<div class="desc">Where "iv" and "key" are IV and Key as hex-string. They may be obtained from <a href="https://www.theiphonewiki.com/wiki/Firmware">The iPhone Wiki</a></div><br>
+Now send decrypted files to device (to <span class="cli">/mnt1</span>). Make sure you gave exactly same names to files as I gave in commands above (applelogo, ramdisk, kernelcache)<br><br>
+<center><a href="patchingbootchain.html" class="menu"><b>> Part 5:</b> Patching bootchain</a></center><br>
+</div>
+
+<footer>
+Nyan Satan, 2017<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+</footer>
+
+
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, minimum-scale=1, maximum-scale=1">
+
+<title>iOS Dualboot - Patching bootchain</title>
+
+</head>
+
+<body>
+
+<div class="main">
+<h1>Patching bootchain</h1>
+Most difficult part of entire guide. We have to make iBSS automatically load iBEC from some point of memory, make iBEC mount third partition and take our previously decrypted boot components therefrom. Also, we should add special property to Device Tree to disable use of <i>Effaceable Storage</i>. This will fix literally every issue related with data-protection
+<h2>iBSS</h2>
+First of all, decrypt and unpack iBSS image:
+<p class="cli">reimagine original_iBSS iBSS.raw -iv iv -k key -r</p>
+Patch it out of signature checks using <b>iBoot32Patcher</b>:
+<p class="cli">iBoot32Patcher iBSS.raw iBSS.prepatched</p><br>
+<img class="align" src="resources/patcher.png"><br>
+Now open it in disassembler (<b>IDA Pro</b> in my case) and switch CPU architecture to <b>ARM Little-endian</b>:<br><br>
+<img class="align" src="resources/armset.png"><br>
+Rebase program (value at 0x20 - 0x40 (0x84000040 - 0x40 = 0x84000000 in this case)):<br><br>
+<img class="align" src="resources/rebase.png"><br>
+Then you should find kind of "initialization" function. It always contains <span class="cli">LDR</span> instruction with <span class="cli">iBSS ready, asking for DFU...</span> string, so you can easily find it:<br><br>
+<img class="align" src="resources/init.png"><br>
+Preparations done, now patch it!
+<h3>Load address patch</h3>
+In <b>initialization</b> function, there's something like <span class="cli">MOVT.W R4, #0x4FE0</span>. It will immediately rushes in your eyes, because hex value has orange color:<br><br>
+<img class="align" src="resources/loadaddr.png"><br>
+This value tells iBSS where it should find iBEC to jump to. In case of N90AP, iOS 6.1.3 it's <span class="cli">#0x4FE0</span> (so iBSS will look at 0x4FE00000), but may be different in bootloaders for other devices/versions. <b>multi_kloader</b> places second image at 0x7FD000000, so we have to replace current instruction by <span class="cli">MOVT.W R4, #0x7FD0</span> Come to hex view and replace current hex representation of instruction by <span class="cli">C7 F6 D0 74</span>. Now it should look in such way:<br><br>
+<img class="align" src="resources/patchedloadaddr.png"><br>
+<h3>Disable usb_wait_for_image patch</h3>
+Search for "Apple Mobile" string in IDA. Probably, you'll only find plain string somewhere in the end of file:<br><br>
+<img class="align" src="resources/applemobile.png"><br>
+Then search for address of found string (<span class="cli">0x8400CFAF</span> in this case):<br><br>
+<img class="align" src="resources/applemobile2.png"><br>
+This time it'll find 2 <span class="cli">LDR R0, =0x8400CFAF</span> instructions. Go to one of them and follow <i>CODE XREFs</i> until you back to <b>initialization</b> function:<br><br>
+<img class="align" src="resources/xref1.png"><br>
+<img class="align" src="resources/xref2.png"><br>
+Note that <b>IDA</b> points cursor to place when function called when you follow <i>CODE XREFs</i>
+<img class="align" src="resources/xref3.png"><br>
+Aye, we found it! <span class="cli">sub_8400993C</span> is <b>usb_wait_for_image</b> routine we looked for. All we need is replace this <span class="cli">BL</span> by <span class="cli">NOP</span> <span class="cli">NOP</span> (<span class="cli">NOP</span> means <i>No Operation</i>). Hex representation of <span class="cli">NOP</span> instruction is <span class="cli">00 BF</span>. Switch to hex view and replace 4 bytes of <span class="cli">BL</span> by 2x <span class="cli">00 BF</span>:<br><br>
+<img class="align" src="resources/before.png"><br>
+<img class="align" src="resources/after.png"><br>
+
+<h3>Producing difference file and applying it</h3>
+<b>File</b> - <b>Produce files</b> - <b>Produce DIF file...</b><br><br>
+<img class="align" src="resources/dif.png">
+<div class="desc">Example of produced file</div><br>
+Clone prepatched iBSS:
+<p class="cli">cp iBSS.prepatched iBSS.patched</p><br>
+Apply difference using <b>ida_patcher</b>:
+<p class="cli">ida_patcher -i iBSS.patched -p iBSS.dif</p>
+...or just replace bytes manually using hexadecimal editor
+<h2>iBEC</h2>
+Decrypt and unpack iBEC image:
+<p class="cli">reimagine original_iBEC iBEC.raw -iv iv -k key -r</p>
+Patch it out of signature checks and inject boot-args using <b>iBoot32Patcher</b>:
+<p class="cli">iBoot32Patcher iBEC.raw iBEC.prepatched -b "rd=disk0s1s3 -v amfi=0xff cs_enforcement_disable=1"</p>
+<img class="align" src="resources/ibec_patcher.png"><br>
+Before loading gotten image into disassembler, let's talk about applied boot arguments:
+<ul type="1">
+  <li><b>rd=disk0s1s3</b> - tells kernel which disk node should be used as root device</li>
+  <li><b>-v</b> - enables verbose mode. You'll see kernel log instead of logo</li>
+  <li><b>amfi=0xff cs_enforcement_disable=1</b> - disables code signing enforcement</li>
+</ul>
+Now open it in disassembler (<b>IDA Pro</b> in my case) and switch CPU architecture to <b>ARM Little-endian</b>:<br><br>
+<img class="align" src="resources/armset_ibec.png"><br>
+Rebase program (value at 0x20 - 0x40 (0x5FF00040 - 0x40 = 0x5FF00000 in this case)):<br><br>
+<img class="align" src="resources/rebase_ibec.png"><br>
+
+
+<h3>boot-command=upgrade patch</h3>
+iBoot Stage 2 (flashable iBoot and iBEC) has set of local hardcoded variables (<span class="cli">boot-command</span>, <span class="cli">build-style</span>, <span class="cli">loadaddr</span>, <span class="cli">bootdelay</span>, etc.), but if same variable exists in NVRAM, NVRAM's value will be used instead of hardcoded<br><br>
+As mentioned in previous part, we'll use OTA routines to untether dualboot. Natively iOS sets <span class="cli">upgrade</span> string to <span class="cli">boot-command</span> NVRAM variable and then reboots. After reboot iBoot detect this variable, mounts third partition (also known as <b>upgrade</b> partition), grabs APTicket and iBEC and then loads them. When iBEC is initializing, it checks boot-command too, and if it equals to <span class="cli">upgrade</span> iBEC mounts upgrade partition, grabs APTicket, Apple logo (it never works originally though, but we'll fix it), DeviceTree, ramdisk, kernel cache and boot them all. OTA update begins<br><br>
+Setting this variable manually in NVRAM is bad idea. First OS'es iBoot will detect it too, signature checks will obviously fail and as result device will stuck in Recovery mode. It's not being possible to delete this variable from iBoot shell, so you'll be forced to restore<br><br>
+Instead of setting it to NVRAM, let's re-hardcode original <span class="cli">boot-command</span>'s value (originally, it's usually <span class="cli">fsboot</span>) to <span class="cli">upgrade</span>. NVRAM won't be touched, so first OS'es iBoot will stay safe<br><br>
+First of all, we need find two strings and write down their adresses. <span class="cli">fsboot</span>:<br>
+<img class="align" src="resources/fsboot.png">
+...and <span class="cli">upgrade</span>:<br>
+<img class="align" src="resources/upgrade.png">
+<b>Important note</b>: you'll get 2 occurrences, but you need only the one with <span class="cli">00</span> around it, other one is part of <span class="cli">failed to mount upgrade partition</span> string<br><br>
+Now search for address of first string (3553A in this case) in <b>IDA</b>:<br><br>
+<img class="align" src="resources/upgrade_patch1.png"><br>
+The only occurrence will be found in function which sets local iBoot variables. All of these addresses in <span class="cli">LDR</span> instructions point to strings with variable's names and their values, but their recognition in IDA never works properly<br><br>
+Now go to string reference section below function:<br><br>
+<img class="align" src="resources/strings1.png"><br>
+Click to address of <span class="cli">fsboot</span> (<span class="cli">0x5FF3553A</span> in this case) and switch to hex-view:<br><br>
+<img class="align" src="resources/hex_strings1.png"><br>
+Highlighted value (<span class="cli">3A 55 F3 5F</span> in this case) is little-endian representation of address in memory for <span class="cli">fsboot</span> string. So, all we need to do is add base address (<span class="cli">0x5FF00000</span> in this case) to the address of <span class="cli">upgrade</span> string, convert it to little-endian byte order and replace <span class="cli">3A 55 F3 5F</span> by gotten value<br><br>
+<i>0x5FF00000+0x35275 = 0x5FF35275</i>. Revert byte order - <span class="cli">75 52 F3 5F</span>. Patch bytes in disassembler<br><br>
+<img class="align" src="resources/hex_string2.png"><br>
+Most likely you'll see raw address instead of <span class="cli">upgrade</span>:<br><br>
+<img class="align" src="resources/broken_string2.png"><br>
+Go to this address and you'll get that's because <b>IDA</b> often recognize strings as instructions or raw bytes: <br><br>
+<img class="align" src="resources/broken_strings.png"><br>
+You may undefine them manually though. You'll understand you did this patch well if DATA XREF appeared in the right of <span class="cli">upgrade</span> string:<br><br>
+<img class="align" src="resources/undefined_strings.png"><br>
+Sometimes it may disappear though, look here instead:<br><br>
+<img class="align" src="resources/ldr_upgrade.png"><br>
+<h3>auto-boot=true patch</h3>
+When iBEC detects <span class="cli">upgrade</span> boot-command, it always sets <span class="cli">auto-boot</span> variable to <span class="cli">false</span> (in NVRAM too), this causes Recovery mode on the next normal boot. That's not fatal, it's possible to close Recovery, but obviously inconvenient<br><br>
+We'll fix it in the same way as we patched <span class="cli">boot-command</span> variable - just replace string reference from <span class="cli">false</span> to <span class="cli">true</span>. Thereby it will always set it to <span class="cli">true</span> and boot loops won't happen<br><br>
+Let's find upgrade routines. It may be done by searching for <span class="cli">failed to mount upgrade partition\n</span> string:<br><br>
+<img class="align" src="resources/true_patch1.png"><br>
+Variable manipulation stuff starts from 0x12EE (<span class="cli">LDR</span> at 0x12EE actually points to <span class="cli">auto-boot</span> string, <span class="cli">LDR</span> at 0x12F2 points to <span class="cli">false</span> string). Now you should be able to patch it yourself. That's how proper patch should look like:<br><br>
+<img class="align" src="resources/true_patch2.png"><br>
+<h3>Apple Logo patch</h3>
+Most complicated patch. For unobvious reason, Apple logo appearance is broken on upgrade boots, there is code for this purpose, but it doesn't work. I've made fix:<br><br>
+<center><blockquote class="twitter-tweet" data-lang="en"><p lang="en" dir="ltr">Finally fixed Apple logo appearance in untethered dualboots /cc. <a href="https://twitter.com/JonathanSeals">@JonathanSeals</a> <a href="https://t.co/Njj6LHM4Mf">pic.twitter.com/Njj6LHM4Mf</a></p>&mdash; Nyan Satan (@nyan_satan) <a href="https://twitter.com/nyan_satan/status/852806075698954240">April 14, 2017</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></center>
+<br>
+<h4>What must be done to make it appear?</h4>
+<ol>
+<li>Apple logo's IMG3 must be loaded from the filesystem to loadaddr (result is same when you simply send some IMG3 through iBoot shell). It seems to be the only thing performed in OTA-routines to make logo show. Or that function (<span class="cli">sub_5FF1BFF8</span> in this case) is partially broken:<br><br>
+<img class="align" src="resources/logo_load.png"><br>
+<div class="separator"></div><br>
+<img class="align" src="resources/devicetree_load.png"><br>
+<div class="desc">Shortly after logo's load, Device Tree loads too and replaces logo's image in memory. So we must do magic before that</div><br></li>
+<li>Obviously that's not enough to get logo appear. As you know from tethered boot proccess, it's also needed to send <span class="cli">setpicture</span> command and change background color using <span class="cli">bgcolor R G B</span></li><br>
+<li>Can we call <span class="cli">setpicture</span> and <span class="cli">bgcolor</span> manually in assembly? Sure!</li>
+</ol>
+<a target="_blank" href="resources/set_applelogo.png"><img class="align" src="resources/set_applelogo.png"></a>
+<div class="desc">Tap on image to open full size</div>
+<br>
+<h4>How to find all these functions offsets</h4>
+<ul>
+<li><b>load_applelogo</b>: can be found in OTA routines (see screenshots above, it's <span class="cli">sub_5FF1BFF8</span> in this case)</li>
+<li><b>setpicture_cmd</b>: can be easily found using <b>iBoot32Patcher</b>:
+<p class="cli">iBoot32Patcher iBEC.raw /dev/null -c "setpicture" 0x80000000</p>
+<img class="align" src="resources/setpicture_offset.png"><br>
+Subtract 0x1 from highlighted value. Result is the offset of this function<br><br>
+<img class="align" src="resources/setpicture_cmd.png"></li><br>
+<li><b>set_bgcolor</b> and <b>apply_bgcolor</b>: can be found in the same manner as we did it for <b>setpicture_cmd</b>:
+<p class="cli">iBoot32Patcher iBEC.raw /dev/null -c "bgcolor" 0x80000000</p>
+<img class="align" src="resources/bgcolor_offset.png"><br>
+Subtract 0x1 from highlighted value and go to resulting offset (<span class="cli">0x5FF00FCC</span> in this case):<br><br>
+<img class="align" src="resources/bgcolor_cmd.png"><br>
+Branches below 3x <span class="cli">LDRB</span> and <span class="cli">MOV</span> point to <b>set_bgcolor</b> and <b>apply_bgcolor</b> functions respectively (<span class="cli">0x5FF1BD30</span> and <span class="cli">0x5FF1C04C</span> in this case)</li>
+</ul>
+<h4>set_applelogo function</h4>
+As you saw on screenshot above, you have to write dedicated function which will load IMG3 with logo from filesystems, call <span class="cli">setpicture</span> command and change background color. Best place for it is free area around build-version strings:<br>
+<img class="align" src="resources/free_area.png">
+<div class="desc">It's well-known practice to place kernel patchers there (to manage with code signing)</div><br>
+It's hard to explain entire process of writing function step-by-step, so I'll just show result:<br><br>
+<a target="_blank" href="resources/set_applelogo2.png"><img class="align" src="resources/set_applelogo2.png"></a>
+<div class="desc">Tap on image to open full size</div>
+<br>
+...place where we call it (there were APTicket and Apple logo originally, you saw it above):<br><br>
+<img class="align" src="resources/load_logo_dtre.png"><br>
+With <a href="http://armconverter.com">ARM To Hex Converter</a> and <a href="http://armconverter.com/branchfinder/">Branch Finder</a> it shouldn't be very difficult
+<h4>Applying patches</h4>
+Process is the same as we did for iBSS. The only difference is that we also need to pack patched bootloader into IMG3 container:
+<p class="cli">image3maker -t ibec -f iBEC.patched -o iBEC.img3</p>
+<h2>DeviceTree</h2>
+<h3>no-effaceable-storage patch</h3>
+Super important thing. This patch disables use of <i>Effaceable Storage</i>. Briefly, it's special place where data-protection keys are stored. It's much better to disable it on second system to prevent conflicts<br><br>
+As I said before, it's better to perform first boot of second OS without keybag generator just to test this patch. If you do something wrong there, keybag generator will regenerate Effaceable Storage's keys, that will mess up your first iOS instance and you'll be forced to restore<br><br>
+
+Standardly, decrypt and unpack DeviceTree:
+<p class="cli">reimagine original_dtre dtre.raw -k key -iv iv -r</p>
+...and pack it back:
+<p class="cli">image3maker -t dtre -f dtre.raw -o devicetree</p>
+Then open it with <b>imagine</b>:
+<p class="cli">imagine -d devicetree</p>
+It will output human-readable representation of DeviceTree:<br><br>
+<img class="align" src="resources/parsed_dtre.png"><br>
+DeviceTree parser will be very useful to check whether patch is correct or it's not<br><br>
+Now patching itself. All we need to do is add <span class="cli">no-effaceable-storage</span> property to <span class="cli">default</span> section. Open raw DeviceTree in hex-editor and select area from <span class="cli">firmware-min-capacity</span> to next string (<span class="cli">platform-name</span> usually) and copy it to clipboard:<br>
+<img class="align" src="resources/dtre_patch1.png">
+Then search for <span class="cli">use-lwvm</span> string:<br>
+<img class="align" src="resources/dtre_patch2.png">
+Paste bytes from clipboard to this place, but don't replace <span class="cli">use-lwvm</span>:<br>
+<img class="align" src="resources/dtre_patch3.png">
+Replace <span class="cli">firmware-min-capacity</span> by <span class="cli">no-effaceable-storage</span> (only ASCII symbols surely):
+<img class="align" src="resources/dtre_patch4.png">
+There is byte in the beginning of each section which defines number of properties in the section (should be always in few bytes before <span class="cli">AAPL,phandle</span> in case of <span class="cli">default</span> section we edit):
+<img class="align" src="resources/dtre_patch5.png">
+Since we add 1 additional property to the section, we must also add 0x1 to this number (0x7+0x1 = 0x8 in this case):
+<img class="align" src="resources/dtre_patch6.png">
+Save changes and repack:
+<p class="cli">image3maker -t dtre -f dtre.raw -o devicetree</p>
+...and check it using <b>imagine</b>:
+<p class="cli">imagine -d devicetree</p><br>
+<img class="align" src="resources/dtre_patch7.png"><br><br>
+You'll know you patched your DeviceTree well if <span class="cli">no-effaceable-storage</span> property appeared and <b>imagine</b> haven't crashed with <span class="cli">Segmentation fault: 11</span>
+<h2>Send resulting files to device</h2>
+Send iBSS and iBEC to device somewhere near root directory. Doesn't really matter where exactly<br><br>
+Send patched and packed DeviceTree to <span class="cli">/mnt1</span>. It must have name <span class="cli">devicetree</span>. As you remember, we already placed Apple logo, ramdisk and kernel there<br><br><br><br>
+
+Storage is partitioned, root filesystem is restored and modified and bootchain components are patched. It's time to finally boot it all!<br><br>
+
+<center><a href="firstboot.html" class="menu"><b>> Part 6:</b> First boot</a></center><br>
+</div>
+
+<footer>
+Nyan Satan, 2017<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+</footer>
+
+
+</body>
+</html>

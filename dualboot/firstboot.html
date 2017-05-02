@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, minimum-scale=1, maximum-scale=1">
+
+<title>iOS Dualboot - First boot</title>
+
+</head>
+
+<body>
+
+<div class="main">
+<h1>First boot</h1>
+<h2>Configuring Way Out</h2>
+Install and launch Way Out. Press <b>i</b> button and open settings:<br><br>
+<img class="align"  src="resources/wayout_info.png"><br>
+Enter path to iBSS image in <b>Image 1</b> section and path to iBEC image in <b>Image 2</b> section. Image type and version should appear immediately in entries if images are valid:<br><br>
+<img class="align" src="resources/wayout_settings.png"><br>
+Save settings and slide to boot:<br><br>
+<img class="align" src="resources/wayout_executing.png"><br>
+<i><b>Important note</b>: device should be unplugged, otherwise you may get reboot instead of kloader jump. Also, in case of Lightning-devices, it should be unplugged while entire system uptime, so if it was plugged, reboot it first. Otherwise you'll get kernel panic due to <b>AppleTristar</b> kernel extension</i><br><br>
+Now your tactic depends on <b>fixkeybag</b> existance:
+<h3>If you have NOT installed fixkeybag</h3>
+After screen turns black wait few seconds and press any hardware button. Screen will lit up, then logo will appear and kernel will boot in verbose mode. In the end you should see something like this:<br><br>
+<img class="align" src="resources/FATALKB.jpg"><br>
+You'll know your Device Tree patch is correct, if <span class="cli">AppleKeyStore: disabling use of effaceable storage, using fake key</span> message appeared.
+Your device will reboot and enter Recovery mode. No worries, it's easily fixable:
+<p class="cli">irecovery -a</p> Now feel free to install <b>fixkeybag</b> (this process is described in <b>Part 4</b>) and boot again<br><br>
+
+<h3>If you have installed fixkeybag</h3>
+Your device should successfully boot to second iOS. In the end of the log you will see <span class="cli">AppleKeyStore: disabling use of effaceable storage, using fake key</span> and messages about keybag generating:
+<p class="cli">Generating keybag...<br>
+_MKBKeyBagCreateSystem: Can't set the system bag: e00002c1<br>
+AppleKeyStore:cp_key_store_action(0)<br>
+No worries, "can't set the system bag" message is OK
+</p>
+</div>
+
+<footer>
+Nyan Satan, 2017<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+</footer>
+
+
+</body>
+</html>

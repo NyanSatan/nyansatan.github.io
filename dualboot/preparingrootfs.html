@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, minimum-scale=1, maximum-scale=1">
+
+<title>iOS Dualboot - Preparing RootFS image</title>
+
+</head>
+
+<body>
+
+<div class="main">
+
+<h1>Preparing RootFS</h1>
+In the next part we'll repartition device's disk storage to create 2 additional partitions for second OS. After that we'll restore iOS root filesystem (also known as <b>RootFS</b>) disk image to one of them. Best way to do it - use <b>ASR</b> (<b>A</b>pple <b>S</b>ystem <b>R</b>estore) - instrument from iOS ramdisk which is used to restore RootFS in native restores/updates. But in order to take advantage of it, original DMG image must be decrypted and converted back to <b>UDZO</b> disk image format (more info <a href="https://www.theiphonewiki.com/wiki/Disk_Image_Formats">here</a>)
+
+<h2>Decryption</h2>
+First of all, we need to decrypt and extract original RootFS image:
+<p class="cli">dmg extract originalRootFS.dmg decrypted.dmg -k key</p>
+<div class="desc">Keys may be obtained from <a href="https://www.theiphonewiki.com/wiki/Firmware">The iPhone Wiki</a></div><br><br>
+In case of successful decryption, you'll see something like this in the end of log:<br><br>
+<img class="align" src="resources/decryption.png">
+
+<h2>Convertion</h2>
+To be able to pass our decrypted image to <b>ASR</b>, we need to convert it to <b>UDZO</b> Image Format - UDIF zlib-compressed read-only image. After decryption it becomes <b>UDRW</b> - UDIF read/write image<br><br>
+We still need to use <b>dmg</b>:
+<p class="cli">dmg build decrypted.dmg UDZO.dmg</p>
+In the end of process you'll see something like this:<br><br> 
+<img class="align" src="resources/convertion.png">
+<br><br> 
+
+That's all. Now it's time for repartition<br><br>
+
+<center><a href="partitioning.html" class="menu"><b>> Part 2:</b> Partitioning</a></center><br>
+
+</div>
+
+<footer>
+Nyan Satan, 2017<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+</footer>
+
+
+</body>
+</html>

@@ -3,7 +3,7 @@ body {
 
    	margin:0 auto;
 	padding: 0;
-   	height:100%;
+   	height: 100%;
 	font-family: Helvetica;
 	
 }
@@ -15,14 +15,14 @@ div.main {
 	height: 100%;
 	min-height: 100%;
    	position: relative;	
-	max-width: 750px;
+	max-width: 760px;
 }
 
 div.separator {
 
 	width: 100%; 
 	height: 1px; 
-	background: gray; 
+	background: #bcbbc1; 
 	overflow: hidden;
 	margin:0 auto;
 }
@@ -30,9 +30,9 @@ div.separator {
 p.cell {
 
 	margin:0 auto;
-	width: 90%;
-	min-height: 50px;
-	line-height: 50px;
+	width: 95%;
+	min-height: 45px;
+	line-height: 45px;
 }
 
 footer {
@@ -57,10 +57,11 @@ img.align {
 	margin-left: auto; 
 	margin-right: auto;
 	display: block;
+	background-size: contain;
 }
 
 a.menu {
-
+	
 	text-decoration: none;
 	color: black;
 }
@@ -83,4 +84,11 @@ span.cli {
 	font-family: Courier;
 	word-wrap: break-word;
 
+}
+
+div.desc {
+
+	padding-top: 10px;
+	text-align: center;
+	color: gray;
 }

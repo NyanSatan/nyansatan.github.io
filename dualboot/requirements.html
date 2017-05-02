@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, minimum-scale=1, maximum-scale=1">
+
+<title>iOS Dualboot - Requirements</title>
+
+</head>
+
+<body>
+
+<div class="main">
+<h1>Requirements</h1>
+
+<h2>Hardware</h2>
+<ol type="1">
+  <li>Computer on <b>OS X</b>. Should be possible to use <b>Linux</b> or even <b>Windows</b>, but I only consider OS X</li><br>
+
+  <li><b>Jailbroken 32-bit</b> iOS device with <b>tfp0</b> patched on 5.0+</li><br>
+</ol>
+<h2>Software</h2>
+<h4>On computer</h4>
+<ol type="1">
+  <li><b>xpwn</b> - bunch of tools for interaction with IMG3 files, RootFS DMG images, etc. Available on <a href="https://github.com/xerub/xpwn">GitHub</a></li><br>
+
+  <li><b>reimagine</b> - tool for interaction with IMG3 files written by @danzatt. You may use <b>xpwntool</b> instead, but in my case it often produced broken IMG3s (specially logos). Available on <a href="https://github.com/danzatt/reimagine">GitHub</a></li><br>
+
+  <li><b>imagine</b> - another tool for interaction with IMG3 files written by @Morpheus______. It includes Device Tree parser, we'll need it to verify patched Device Trees. Available on <a href="https://www.theiphonewiki.com/wiki/DeviceTree">The iPhone Wiki</a> (in External Links)</li><br>
+
+  <li><b>image3maker</b> - utility for packing raw images into IMG3 containers. Available on <a href="https://github.com/darwin-on-arm/image3maker">GitHub</a></li><br>
+
+  <li><b>iRecovery</b> - tool for interacting with iBoot shell. Available on <a href="https://github.com/xerub/irecovery">GitHub</a></li><br>
+
+  <li>Some hexadimical editor, use your favorite</li><br>
+
+  <li>Some disassembler. For example, <b>IDA Pro</b>. This is expensive thing, but should be possible to find leaked versions</li><br>
+
+  <li><b>ida_patcher</b> - tool for applying .dif files produced by <b>IDA Pro</b>. Available on <a href="https://gist.github.com/Zeex/6607437">GitHub</a>. You should be able to use hex-editor instead though</li><br>
+
+  <li>SSH client. Should be built-in on OS X and Linux</li><br>
+
+  <li><b>iBoot32Patcher</b> - tool written by @iH8sn0w. Patches iOS bootloaders out of signature checks, inject boot-args, etc. Available on <a href="https://github.com/iH8sn0w/iBoot32Patcher">GitHub</a></li>
+</ol>
+<h4>On device</h4>
+<ol type="1">
+  <li><b>OpenSSH</b> - allows you access device's command shell remotely and transfer files. Available in Cydia</li><br>
+
+  <li><b>dualbootstuff</b> package. It contains <b>gptfdisk</b>, <b>hfs_resize</b>, <b>kloader</b> and other tools we'll use. Available in my Cydia repository (nyansatan.github.io/apt)</li><br>
+
+  <li><b>diskdev-cmds</b> package. Just for <b>umount</b>. Available in Cydia</li><br>
+
+  <li><b>nano</b> - CLI text editor we'll use it to edit fstab and launchd.conf. Available in Cydia</li><br>
+
+  <li><b>Way Out</b> - GUI in the spirit of classical Setup.app for kloader/multi_kloader. We'll use it to boot second iOS. Available in my Cydia repository</li><br>
+</ol>
+
+<center><a href="preparingrootfs.html" class="menu"><b>> Part 1:</b> Preparing Root FS</a></center><br>
+
+</div>
+
+<footer>
+Nyan Satan, 2017<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+</footer>
+
+
+</body>
+</html>

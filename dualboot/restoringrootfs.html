@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, minimum-scale=1, maximum-scale=1">
+
+<title>iOS Dualboot - Restoring RootFS</title>
+
+</head>
+
+<body>
+
+<div class="main">
+
+<h1>Restoring RootFS</h1>
+
+In this part we'll create HFS+ volumes on newly created partitions and restore RootFS to one of them
+<h2>Creating filesystems</h2>
+First of all, let's create mount points:
+<p class="cli">mkdir /mnt1<br>mkdir /mnt2</p>
+Now create filesystems:
+<p class="cli">/sbin/newfs_hfs -s -v System -J -b bsize -n a=bsize,c=bsize,e=bsize /dev/disk0s1s3<br><br>/sbin/newfs_hfs -s -v Data -J -b bsize -n a=bsize,c=bsize,e=bsize /dev/disk0s1s4</p>
+<div class="desc">Where <span class="cli">bsize</span> is value of your device's blocksize, obviously</div><br>
+<img class="align" src="resources/newfs.png"><br>
+Mount second one:
+<p class="cli">mount_hfs /dev/disk0s1s4 /mnt2</p>
+<img class="align" src="resources/mount.png"><br>
+<span class="cli">Could not create property for re-key environment check</span> message is OK, it appears even while native restores. So, no worries<br><br>
+Now send your RootFS image you prepared in Part 1 to <span class="cli">/mnt2</span>. You may use <b>scp</b> or send it through <b>afc2</b><br><br>
+<img class="align" src="resources/scp.png"><br>
+<h2>Restoring</h2>
+After it run <b>ASR</b>:
+<p class="cli">asr restore --source /mnt2/UDZO.dmg --target /dev/disk0s1s3 --erase</p>
+<img class="align" src="resources/asr.png"><br>
+<div class="desc"><span class="cli">Validating source</span> will take a while, no worries</div><br>
+After it succeeds you may run <b>fsck_hfs</b> just for sure:
+<p class="cli">fsck_hfs -f /dev/disk0s1s3</p>
+<img class="align" src="resources/fsck.png"><br>
+That's all, RootFS image is restored<br><br>
+<center><a href="modifyingfilesystems.html" class="menu"><b>> Part 4:</b> Modifying filesystems</a></center><br>
+</div>
+
+<footer>
+Nyan Satan, 2017<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+</footer>
+
+
+</body>
+</html>

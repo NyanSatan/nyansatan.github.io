@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, minimum-scale=1, maximum-scale=1">
+
+<title>iOS Dualboot - Partitioning</title>
+
+</head>
+
+<body>
+
+<div class="main">
+<h1>Partitioning</h1>
+Now comes most dangerous part. I highly recommend to try on something you don't afraid to lose iOS on (e.g. iPhone 4) first<br><br>
+In the first instance, we have to decrease size of <span class="cli">/private/var</span> (also known as <b>Data</b>) volume (HFS filesystem, not partition itself) just like iOS does before OTA-update. After that, we'll edit partition table to create 2 new partitions in space freed after decrease <span class="cli">/private/var</span>'s partition
+
+<h2>Resizing Data-partition's HFS</h2>
+
+As mentioned above, we need to decrease size of Data volume. There is tiny utility written by @danzatt for this purpose - <b>hfs_resize</b>. Its syntax is simple: 
+<p class="cli">hfs_resize mount_point new_size</p>
+
+<h3>Calculating new size</h3>
+Formula is obvious and clear (where <i>size_os_second_os</i> is both for System and Data partitions):
+<p class="cli">new_size = original_volume_size - size_of_second_os</p>
+<div class="desc">All  values are in bytes</div>
+<h4>But there are few nuances</h4>
+Before talking about them, let's check for free space:
+<p class="cli">ssh root@device_ip</p>
+<p class="cli">df -B1</p>
+Here's example of output:<br><br>
+<img class="align" src="resources/freespace.png"><br>
+<b>So, nuances:</b>
+<ul>
+  <li>Obviously, space for second OS mustn't be greater than available space on Data volume. iOS 6 System partition takes about 1.2 GB, its Data partition should be at least 1.0 GB or greater</li>
+  <li>You must leave at least 400-500 MB of free space on first Data volume</li>
+  <li>Also, don't forget that iOS always subtract 200 MB from real available space. For example, if <b>Settings</b> app reports that 500 MB of space are available, the real free space is 700 MB</li>
+</ul>
+<div class="separator"></div><br>
+In this guide I'll use 768 MB as new size. 768*1024*1024 = 805306368 bytes.<br><br>
+<img class="align" src="resources/resize.png"><br>
+<i>This process may take a while, no worries</i><br><br>
+After it succeeds run <b>df</b> again:<br><br>
+<img class="align" src="resources/newdf.png"><br>
+As you see values have changed. Let's compare this info with info from <b>Settings</b> app. <b>df</b> reports 489119744/1024/1024 = 466 MB is free, but settings thinks it's only 266 MB<br><br>
+<img class="align" src="resources/settings.png"><br>
+As I mentioned above it's OK, but please consider all these nuances when you'll do it yourself!
+
+<h2>Editing partition table</h2>
+Now we're ready to edit our partition table. Since 5.0, iOS has two partition tables: 
+
+<ul type="1">
+  <li><b>LwVM</b> - <b>L</b>ightweight <b>V</b>olume <b>M</b>anager. Stored on <span class="cli">/dev/disk0</span> block device. Actual partition table (there is also eponymous kernel extension for management of disk related things incl. partition table). It's read by kernel on startup. Used on iOS only</li><br>
+  <li>"Fake" <b>GPT</b>. Published on <span class="cli">/dev/disk0s1</span> by <b>LwVM</b> kernel extension. Contains representation of data from <b>LwVM</b> in GPT format. When this table is edited, <b>LwVM</b> kext writes changes back to <b>LwVM</b> partition table. We'll mess with exactly this table</li>
+</ul>
+<div class="separator"></div><br>
+
+To edit GPT, modified <b>gptfdisk</b> can be used. At first, let's open partition table in it:
+<p class="cli">gptfdisk /dev/rdisk0s1</p>
+Print table:
+<p class="cli">p Enter</p>
+<img class="align" src="resources/p.png"><br>
+Keep in mind value of logical sector size, for iPad 2 and older devices it should be 8192 bytes and for newer it's 4096 bytes<br><br><br>
+Let's request info for second partition:
+<p class="cli">i Enter 2 Enter</p>
+<img class="align" src="resources/i2.png"><br>
+Write down somewhere value of partition unique GUID, it's important.<br><br><br>
+Delete second partition. No worries, we'll create new one on previous place, but with decreased size:
+<p class="cli">d Enter 2 Enter</p><br>
+Create new partition:
+<p class="cli">n Enter</p>
+<img class="align" src="resources/n2.png"><br>
+Leave default first sector by pressing <span class="cli">Enter</span>:<br><br>
+<img class="align" src="resources/n2l.png"><br>
+<i>Your size you passed to <b>hfs_resize</b> could be not blocksize-aligned, so it could complain: <span class="cli">[-] Adjusting size to <b>xyz</b> to match next block</span>. In this case you must use <span class="cli"><b>xyz</b></span> value in following calculations!</i><br><br>
+Divide your new size (805306368 bytes in my case) by blocksize (we found it before when pressed <span class="cli">p</span>): 805306368/8192 = 98304 blocks. Now add it to default first sector (176339 in my case): 176339+98304=274643. Pass this value and leave default Hex code<br><br>
+<img class="align" src="resources/n2e.png"><br>
+Change its name back to "Data":
+<p class="cli">c Enter 2 Enter Data Enter</p><br>
+<img class="align" src="resources/c2.png"><br>
+Make sure we did all this well:
+<p class="cli">p Enter</p>
+<img class="align" src="resources/p2.png"><br>
+Now we need to restore default attributes and GUID:
+<p class="cli">x Enter a Enter 2 Enter 48 Enter 49 Enter Enter</p>
+<img class="align" src="resources/xa.png"><br>
+You'll know you did it properly if <span class="cli">Attribute value is 0003000000000000</span><br><br>
+Restore previous GUID:
+<p class="cli">c Enter 2 Enter</p>
+<img class="align" src="resources/xc.png"><br>
+Copy it here. As you remember we wrote down it before deletion (<span class="cli">745CA95D-00F7-4DD9-8CCE-5DD59F2B6A1B</span> in my case)<br><br>
+<img class="align" src="resources/xc2.png"><br><br>
+Resize partition table itself to allow it hold more than 2 partitions:
+<p class="cli">s Enter 4 Enter</p>
+<img class="align" src="resources/xs.png"><br><br>
+Now back to <i>Basic mode</i>:
+<p class="cli">m Enter</p><br>
+<img class="align" src="resources/m.png"><br><br>
+Create third partition, this will be System partition for our second OS: 
+<p class="cli">n Enter 3 Enter Enter</p><br>
+<img class="align" src="resources/n3.png"><br>
+To calculate last sector, we need to mount DMG image we created in previous part and open its partition in <b>Disk Utility</b><br><br>
+<img class="align" src="resources/systemsize.png"><br>
+It reveals partition's size in bytes (1271169024 in case of iOS 6.1.3 for N90AP). And as we did for Data partition, we need to divide this size by blocksize (8192 in this case): 1271169024/8192 = 155172 blocks. Then add obtained value to default first sector: 274644+155172 = 429816. Pass this value and leave default Hex code<br><br>
+<img class="align" src="resources/n32.png"><br>
+Change partition's name:
+<p class="cli">c Enter 3 Enter iOS6FTW Enter</p>
+<img class="align" src="resources/c3.png"><br>
+<b>Important note</b>: never use <i>System</i> as name here! It may lead to unexpected behaviour of restore daemon on pre-iOS 10.3, so you'll be unable to restore your device!<br><br><br>
+Create fourth partition, this will be Data for our second OS:
+<p class="cli">n Enter 4 Enter Enter</p>
+<img class="align" src="resources/n4.png"><br>
+Calculation last sector is easier here. Just subtract 3 or 2 from default value: 1947652-3 = 1947649. If you'll chose last sector of whole storage, <b>gptfdisk</b> may not save changes, that happened to me few times. Pass this value and leave default Hex code:<br><br>
+<img class="align" src="resources/n42.png"><br>
+Change partition's name:
+<p class="cli">c Enter 4 Enter iOS6Data Enter</p>
+<img class="align" src="resources/c4.png"><br>
+<b>Important note</b> above still aplies<br><br>
+Make sure we did all of this well:
+<p class="cli">p Enter</p>
+<img class="align" src="resources/p3.png"><br>
+Now we'll change second Data partition's attributes. Process is same as we did to first Data:<br>
+<p class="cli">x Enter a Enter 4 Enter 48 Enter 49 Enter Enter</p>
+<img class="align" src="resources/xa4.png"><br>
+You'll know you did it properly if <span class="cli">Attribute value is 0003000000000000</span><br><br><br>
+Finally, <b>last step</b>! We need to write our changes. But before check <i>everything</i> once again. If you feel you mistaken somewhere, it's better to start it from scratch. Just type <span class="cli">q</span> press <span class="cli">Enter</span> and start again <br><br>
+If you're sure you did everything properly:
+<p class="cli">w Enter Y Enter</p>
+<img class="align" src="resources/w.png"><br>
+If your device is still alive, execute <b>sync</b> few times:<br><br>
+<img class="align" src="resources/sync.png"><br>
+Now make sure our new partitions appeared:
+<p class="cli">ls /dev/disk*</p>
+<img class="align" src="resources/ls.png"><br>
+If you see this, my congratulations! Partitioning is done!<br><br>
+<center><a href="restoringrootfs.html" class="menu"><b>> Part 3:</b> Restoring Root FS</a></center><br>
+</div>
+
+<footer>
+Nyan Satan, 2017<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+</footer>
+
+
+</body>
+</html>
