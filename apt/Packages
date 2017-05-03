@@ -1,13 +1,13 @@
 Package: com.nyansatan.WayOut
-Version: 1.2-1C28
+Version: 1.2-1C29
 Architecture: iphoneos-arm
 Maintainer: Nyan Satan
 Installed-Size: 6561
 Filename: ./deb_files/WayOut.deb
-Size: 6331420
-MD5sum: 3ed57a999d5e1809ec70b772391216b1
-SHA1: 21c78c68a83b7d746c672832631d52b87b11c59f
-SHA256: c2e313ec4700526bf5e76c1f2af79d3e9eaff1da36c11983d1440c003fcc4f63
+Size: 6331628
+MD5sum: 64311ecf541111a602b3cff36749648b
+SHA1: e304c7804150dc480a66b541eb6735393485a3c8
+SHA256: 467544b2c4285666ed2925a854260890b417658223401238ea5338a25c62bc27
 Section: System
 Description: Way Out - GUI in the spirit of classical Setup.app for untethered dualboots to iOS 6. Developed by @nyan_satan. Thanks to: @winocm, @xerub, @JonathanSeals
 Author: @nyan_satan
