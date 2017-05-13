@@ -23,9 +23,11 @@ First of all, decrypt and unpack iBSS image:
 Patch it out of signature checks using <b>iBoot32Patcher</b>:
 <p class="cli">iBoot32Patcher iBSS.raw iBSS.prepatched</p><br>
 <img class="align" src="resources/patcher.png"><br>
+<div class="separator"></div><br>
+<b>Important note</b>: as reported, patches for iBSS described below doesn't work properly on iPhone 4s. For unobvious reason, second image is cleared from memory, so jump isn't performed<br><br><div class="separator"></div><br>
 Now open it in disassembler (<b>IDA Pro</b> in my case) and switch CPU architecture to <b>ARM Little-endian</b>:<br><br>
 <img class="align" src="resources/armset.png"><br>
-Rebase program (value at 0x20 - 0x40 (0x84000040 - 0x40 = 0x84000000 in this case)):<br><br>
+Rebase program (<span class="cli">Edit</span>-><span class="cli">Segments</span>-><span class="cli">Rebase program</span>) to value at 0x20 - 0x40 (0x84000040 - 0x40 = 0x84000000 in this case:<br><br>
 <img class="align" src="resources/rebase.png"><br>
 Then you should find kind of "initialization" function. It always contains <span class="cli">LDR</span> instruction with <span class="cli">iBSS ready, asking for DFU...</span> string, so you can easily find it:<br><br>
 <img class="align" src="resources/init.png"><br>
@@ -36,9 +38,12 @@ In <b>initialization</b> function, there's something like <span class="cli">MOVT
 This value tells iBSS where it should find iBEC to jump to. In case of N90AP, iOS 6.1.3 it's <span class="cli">#0x4FE0</span> (so iBSS will look at 0x4FE00000), but may be different in bootloaders for other devices/versions. <b>multi_kloader</b> places second image at 0x7FD000000, so we have to replace current instruction by <span class="cli">MOVT.W R4, #0x7FD0</span> Come to hex view and replace current hex representation of instruction by <span class="cli">C7 F6 D0 74</span>. Now it should look in such way:<br><br>
 <img class="align" src="resources/patchedloadaddr.png"><br>
 <h3>Disable usb_wait_for_image patch</h3>
-Search for "Apple Mobile" string in IDA. Probably, you'll only find plain string somewhere in the end of file:<br><br>
-<img class="align" src="resources/applemobile.png"><br>
-Then search for address of found string (<span class="cli">0x8400CFAF</span> in this case):<br><br>
+Now we have to disable iBSS'es USB routines. In order to do that we'll need to find the place where <b>usb_wait_for_image</b> function called and replace this call by <span class="cli">NOP</span>s<br><br>
+How to find this function? As you probably know, iDevice with running DFU-bootloader is usually recognized as USB device named <span class="cli">Apple Mobile Device (DFU Mode)</span>. It should be easy to determine where this string is loaded and after that find <b>usb_wait_for_image</b> root function call by following CODE XREFs<br><br>
+Search for <span class="cli">Apple Mobile</span> string in hex-editor. You'll find this string somewhere in the end of file:<br><br>
+<img class="align" src="resources/applemobile.png">
+<div class="desc"> It's surely possible to search for this string right in <b>IDA</b>, but its string recognition routines does their work awfully bad sometimes, so in some cases you won't find what you need</div><br>
+Then search for address of found string (<span class="cli">CFAF</span> in this case):<br><br>
 <img class="align" src="resources/applemobile2.png"><br>
 This time it'll find 2 <span class="cli">LDR R0, =0x8400CFAF</span> instructions. Go to one of them and follow <i>CODE XREFs</i> until you back to <b>initialization</b> function:<br><br>
 <img class="align" src="resources/xref1.png"><br>
@@ -49,6 +54,24 @@ Aye, we found it! <span class="cli">sub_8400993C</span> is <b>usb_wait_for_image
 <img class="align" src="resources/before.png"><br>
 <img class="align" src="resources/after.png"><br>
 
+<div class="separator"></div>
+<h3>What if you haven't found LDRs</h3>
+As I said above, unfortunately, string recognizer in <b>IDA</b> works extremely bad. That's why you couldn't find your strings sometimes. For example, here is how <span class="cli">Apple Mobile Device (DFU Mode)</span> string was recognized in some bootloader:<br><br>
+<img class="align" src="resources/applemobilesliced.png"><br>
+First part of the string is just byte mess. You shouldn't be surprised string wasn't found<br><br>
+We use external hex-editor to find string's position, so problems will go away, LDRs will just look like this: <span class="cli">LDR R0, =0x8400CFAF</span>, right? Sometimes it's wrong:<br><br>
+<img class="align" src="resources/pattern.png"><br>
+Why? That's why:<br><br>
+<img class="align" src="resources/thatswhy.png"><br>
+It may be too complicated to find such messed instruction, so go to address you got in hex-editor. You'll only see some byte mess:<br><br>
+<img class="align" src="resources/bytemess.png"><br>
+Select it:<br><br>
+<img class="align" src="resources/selected.png"><br>
+Right-click and <i>Undefine</i>. XREF should now appear in the right place:<br><br>
+<img class="align" src="resources/undefined.png"><br>
+Search for your string's address again or just follow XREF
+<br><br><div class="separator"></div>
+
 <h3>Producing difference file and applying it</h3>
 <b>File</b> - <b>Produce files</b> - <b>Produce DIF file...</b><br><br>
 <img class="align" src="resources/dif.png">
@@ -57,7 +80,7 @@ Clone prepatched iBSS:
 <p class="cli">cp iBSS.prepatched iBSS.patched</p><br>
 Apply difference using <b>ida_patcher</b>:
 <p class="cli">ida_patcher -i iBSS.patched -p iBSS.dif</p>
-...or just replace bytes manually using hexadecimal editor
+...or just replace bytes manually using hexadecimal editor<br><br>
 <h2>iBEC</h2>
 Decrypt and unpack iBEC image:
 <p class="cli">reimagine original_iBEC iBEC.raw -iv iv -k key -r</p>
@@ -88,8 +111,8 @@ First of all, we need find two strings and write down their adresses. <span clas
 <b>Important note</b>: you'll get 2 occurrences, but you need only the one with <span class="cli">00</span> around it, other one is part of <span class="cli">failed to mount upgrade partition</span> string<br><br>
 Now search for address of first string (3553A in this case) in <b>IDA</b>:<br><br>
 <img class="align" src="resources/upgrade_patch1.png"><br>
-The only occurrence will be found in function which sets local iBoot variables. All of these addresses in <span class="cli">LDR</span> instructions point to strings with variable's names and their values, but their recognition in IDA never works properly<br><br>
-Now go to string reference section below function:<br><br>
+The only occurrence will be found in function which sets local iBoot variables. All of these addresses in <span class="cli">LDR</span> instructions point to strings with variable's names and their values, but their recognition in <b>IDA</b> never works properly<br><br>
+We need to replace this <span class="cli">LDR R1, =address_to_upgrade_string</span> by <span class="cli">LDR R1, =address_to_upgrade_string</span>. To do that, go to string reference section below function:<br><br>
 <img class="align" src="resources/strings1.png"><br>
 Click to address of <span class="cli">fsboot</span> (<span class="cli">0x5FF3553A</span> in this case) and switch to hex-view:<br><br>
 <img class="align" src="resources/hex_strings1.png"><br>
@@ -106,7 +129,7 @@ Sometimes it may disappear though, look here instead:<br><br>
 <img class="align" src="resources/ldr_upgrade.png"><br>
 <h3>auto-boot=true patch</h3>
 When iBEC detects <span class="cli">upgrade</span> boot-command, it always sets <span class="cli">auto-boot</span> variable to <span class="cli">false</span> (in NVRAM too), this causes Recovery mode on the next normal boot. That's not fatal, it's possible to close Recovery, but obviously inconvenient<br><br>
-We'll fix it in the same way as we patched <span class="cli">boot-command</span> variable - just replace string reference from <span class="cli">false</span> to <span class="cli">true</span>. Thereby it will always set it to <span class="cli">true</span> and boot loops won't happen<br><br>
+We'll fix it in the same way as we patched <span class="cli">boot-command</span> variable's value - just replace string reference from <span class="cli">false</span> to <span class="cli">true</span>. Thereby it will always set it to <span class="cli">true</span> and boot loops won't happen<br><br>
 Let's find upgrade routines. It may be done by searching for <span class="cli">failed to mount upgrade partition\n</span> string:<br><br>
 <img class="align" src="resources/true_patch1.png"><br>
 Variable manipulation stuff starts from 0x12EE (<span class="cli">LDR</span> at 0x12EE actually points to <span class="cli">auto-boot</span> string, <span class="cli">LDR</span> at 0x12F2 points to <span class="cli">false</span> string). Now you should be able to patch it yourself. That's how proper patch should look like:<br><br>
@@ -156,7 +179,7 @@ It's hard to explain entire process of writing function step-by-step, so I'll ju
 With <a href="http://armconverter.com">ARM To Hex Converter</a> and <a href="http://armconverter.com/branchfinder/">Branch Finder</a> it shouldn't be very difficult
 <h4>Applying patches</h4>
 Process is the same as we did for iBSS. The only difference is that we also need to pack patched bootloader into IMG3 container:
-<p class="cli">image3maker -t ibec -f iBEC.patched -o iBEC.img3</p>
+<p class="cli">image3maker -t ibec -f iBEC.patched -o iBEC.img3</p><br>
 <h2>DeviceTree</h2>
 <h3>no-effaceable-storage patch</h3>
 Super important thing. This patch disables use of <i>Effaceable Storage</i>. Briefly, it's special place where data-protection keys are stored. It's much better to disable it on second system to prevent conflicts<br><br>

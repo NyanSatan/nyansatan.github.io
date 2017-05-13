@@ -85,12 +85,12 @@ Press <span class="cli">Ctrl+O</span> to save changes and <span class="cli">Ctrl
 <h2>Packing baseband firmware</h2>
 If you have iPhone 4S or newer device (excluding iPods and Wi-Fi-only iPads, obviously), you have to pack baseband files into ZIP-archive and copy it to second OS'es root filesystem<br><br>
 First, go to original bbfw directory:
-<p class="cli">cd /usr/local/standalone/firmware/Baseband/MavX/</p>
-<div class="desc">Where <span class="cli">X</span> is number. It's <span class="cli">5</span> in case of iPhone 5, but may be different on other devices. Check it before executing</div><br>
+<p class="cli">cd /usr/local/standalone/firmware/Baseband/Mav5/</p>
+<div class="desc">Where <span class="cli">Mav5</span> may be a different name, it depends on your device. For example, it's <span class="cli">Mav5</span> in case of iPhone 5 and iPad 4 or <span class="cli">Trek</span> in case of iPhone 4s. Check it before executing. The same applies to commands below too</div><br>
 Create directory hierarchy on <span class="cli">/mnt1</span>:
-<p class="cli">mkdir -p /mnt1/usr/local/standalone/firmware/Baseband/MavX</p>
+<p class="cli">mkdir -p /mnt1/usr/local/standalone/firmware/Baseband/Mav5</p>
 ZIP bbfw:
-<p class="cli">zip -r0 /mnt1/usr/local/standalone/firmware/Baseband/MavX/MavX-personalized.zip *</p>
+<p class="cli">zip -r0 /mnt1/usr/local/standalone/firmware/Baseband/Mav5/Mav5-personalized.zip *</p>
 <h2>Adding bootchain files</h2>
 Since we'll use OTA routines to untether our dualboot, we have to place Apple logo, Device Tree, ramdisk and kernelcache (as decrypted IMG3 containers, not raw files, obviously) at root directory of third partition<br><br>
 <i>As I mentioned somewhere before, <b>xpwntool</b> often produce broken IMG3 files (especially kernelcaches and logos) in my case. So I'll use <b>reimagine</b> instead, because I've never had any issues with it</i><br><br>
