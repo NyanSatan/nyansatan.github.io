@@ -24,7 +24,7 @@ Patch it out of signature checks using <b>iBoot32Patcher</b>:
 <p class="cli">iBoot32Patcher iBSS.raw iBSS.prepatched</p><br>
 <img class="align" src="resources/patcher.png"><br>
 <div class="separator"></div><br>
-<b>Important note</b>: as reported, patches for iBSS described below doesn't work properly on iPhone 4s. For unobvious reason, second image is cleared from memory, so jump isn't performed<br><br><div class="separator"></div><br>
+<b>Important note</b>: as reported, patches for iBSS described below don't work properly on iPhone 4s. For unobvious reason, second image is cleared from memory, so jump isn't performed<br><br><div class="separator"></div><br>
 Now open it in disassembler (<b>IDA Pro</b> in my case) and switch CPU architecture to <b>ARM Little-endian</b>:<br><br>
 <img class="align" src="resources/armset.png"><br>
 Rebase program (<span class="cli">Edit</span>-><span class="cli">Segments</span>-><span class="cli">Rebase program</span>) to value at 0x20 - 0x40 (0x84000040 - 0x40 = 0x84000000 in this case:<br><br>
