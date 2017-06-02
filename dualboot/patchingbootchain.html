@@ -35,7 +35,7 @@ Preparations done, now patch it!
 <h3>Load address patch</h3>
 In <b>initialization</b> function, there's something like <span class="cli">MOVT.W R4, #0x4FE0</span>. It will immediately rushes in your eyes, because hex value has orange color:<br><br>
 <img class="align" src="resources/loadaddr.png"><br>
-This value tells iBSS where it should find iBEC to jump to. In case of N90AP, iOS 6.1.3 it's <span class="cli">#0x4FE0</span> (so iBSS will look at 0x4FE00000), but may be different in bootloaders for other devices/versions. <b>multi_kloader</b> places second image at 0x7FD000000, so we have to replace current instruction by <span class="cli">MOVT.W R4, #0x7FD0</span> Come to hex view and replace current hex representation of instruction by <span class="cli">C7 F6 D0 74</span>. Now it should look in such way:<br><br>
+This value tells iBSS where it should find iBEC to jump to. In case of N90AP, iOS 6.1.3 it's <span class="cli">#0x4FE0</span> (so iBSS will look at 0x4FE00000), but may be different in bootloaders for other devices/versions. <b>multi_kloader</b> places second image at 0x7FD00000, so we have to replace current instruction by <span class="cli">MOVT.W R4, #0x7FD0</span> Come to hex view and replace current hex representation of instruction by <span class="cli">C7 F6 D0 74</span>. Now it should look in such way:<br><br>
 <img class="align" src="resources/patchedloadaddr.png"><br>
 <h3>Disable usb_wait_for_image patch</h3>
 Now we have to disable iBSS'es USB routines. In order to do that we'll need to find the place where <b>usb_wait_for_image</b> function called and replace this call by <span class="cli">NOP</span>s<br><br>
