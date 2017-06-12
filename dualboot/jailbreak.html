@@ -6,14 +6,13 @@
 <link rel="stylesheet" type="text/css" href="../common/general.css">
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, minimum-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
 
 <title>iOS Dualboot - Jailbreak</title>
 
 </head>
 
 <body>
-
 <div class="main">
 <h1>Jailbreak</h1>
 I've never liked jailbreak. The only purpose to install it for me is ability to dualboot back to iOS 6<br><br>
@@ -21,9 +20,22 @@ You may have different opinion, so I give few recommendations:
 <ul>
 <li>Remove code signing related boot-args. I'm not sure about <b>p0sixspwn</b> or <b>evasi0n</b>, but <b>Pangu 7.1.x</b> untether failed when I tried to boot with these boot arguments</li><br>
 <li>Downgrade iTunes. <b>MobileDevice</b> framework, which is used by jailbreak utilities, updates together with iTunes. That means, older jailbreaks won't work with modern iTunes versions</li><br>
-<li>Jailbreak process usually implies few reboots while it. Disconnect your device shortly after it starts to reboot and connect back only when second OS is about to show SpringBoard</li>
+<li>Jailbreak process usually implies few reboots while it. Disconnect your device shortly after it starts to reboot and connect back only when second OS is about to show SpringBoard</li><br>
+<li>In case of <b>p0sixspwn</b> you also have to place original (encrypted, as it's in IPSW) kernelcache to its original place (<span class="cli">/System/Library/Caches/com.apple.kernelcaches/kernelcache</span>). Otherwise this is what you'll get:<br>
+</li>
 </ul>
+<center><blockquote class="twitter-tweet" data-lang="en"><p lang="en" dir="ltr">No KBAG was found...? WTF?! <a href="https://t.co/pUo2iBpRUY">pic.twitter.com/pUo2iBpRUY</a></p>&mdash; Pierre-Marc Bonneau (@ShadowLee19) <a href="https://twitter.com/ShadowLee19/status/696134429966786560">February 7, 2016</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></center>
+<br>
+
+<center><a href="https://nyansatan.github.io/dualboot/" class="menu"><b>Back to main page</b></a></center><br>
+
 </div>
 
+<footer>
+Nyan Satan, 2017<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+</footer>
 </body>
 </html>

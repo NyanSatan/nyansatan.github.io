@@ -66,6 +66,12 @@ a.menu {
 	color: black;
 }
 
+a.blacklink {
+
+	color: black;
+	font-weight: bold;
+}
+
 p.cli {
 
 	background-color: #F0F0F0;

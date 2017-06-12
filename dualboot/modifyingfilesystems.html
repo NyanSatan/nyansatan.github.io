@@ -6,7 +6,7 @@
 <link rel="stylesheet" type="text/css" href="../common/general.css">
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, minimum-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
 
 <title>iOS Dualboot - Modifying filesystems</title>
 
@@ -93,8 +93,8 @@ ZIP bbfw:
 <p class="cli">zip -r0 /mnt1/usr/local/standalone/firmware/Baseband/Mav5/Mav5-personalized.zip *</p>
 <h2>Adding bootchain files</h2>
 Since we'll use OTA routines to untether our dualboot, we have to place Apple logo, Device Tree, ramdisk and kernelcache (as decrypted IMG3 containers, not raw files, obviously) at root directory of third partition<br><br>
-<i>As I mentioned somewhere before, <b>xpwntool</b> often produce broken IMG3 files (especially kernelcaches and logos) in my case. So I'll use <b>reimagine</b> instead, because I've never had any issues with it</i><br><br>
-In this part, we'll only decrypt kernelcache, ramdisk and logo. Device Tree requires patching and we talk about it in the next part<br><br>
+<i>As I mentioned somewhere before, <b>xpwntool</b> often produces broken IMG3 files (especially kernelcaches and logos) in my case. So I'll use <b>reimagine</b> instead, because I've never had any issues with it</i><br><br>
+In this part, we'll only decrypt kernelcache, ramdisk and logo. Device Tree requires patching and we'll talk about it in the next part<br><br>
 Let's begin<br><br>
 Decrypt Apple logo:
 <p class="cli">reimagine original_logo applelogo -iv iv -k key</p>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
+
+<title>iOS Dualboot - Alternative untether method</title>
+
+</head>
+
+<body>
+
+<div class="main">
+
+<h1>Alternative untether method</h1>
+
+Technique we'll talk about was originally discovered by <b>@ShadowLee19</b><br><br>
+
+Instead of kloadering both iBSS+iBEC and making them load orderly, let's follow more native way - 
+use NOR-section of device's NAND to store secondary bootloader, just where all original IMG3s are stored<br><br>
+
+So our untether will work in following way:<br>
+
+<ol type="1">
+<li>You load specially-patched LLB using kloader</li><br>
+<li>LLB looks into NOR for image with identity <span class="cli">ibec</span> (special patch is needed, originally it looks for <span class="cli">ibot</span>) and loads it. iBEC image must still be decrypted</li><br>
+<li>iBEC mounts third partition, grabs boot components and loads them all just like in case of iBSS+iBEC method</li><br>
+</ol>
+
+<h2>Patching LLB</h2>
+
+After its initialization LLB looks for IMG3 with tag <span class="cli">ibot</span> and if such image was found, LLB will validate, decrypt and jump to it, otherwise it will switch to DFU-Mode:<br><br>
+<img class="align" src="resources/llbinit.png"><br>
+Go to <span class="cli">do_boot</span> function, its call should be right before <span class="cli">LDR R0, =#AddressToDoBootString</span> (in this case it was recognized properly):<br><br>
+<img class="align" src="resources/do_boot.png"><br>
+Patch these <span class="cli">MOV R0</span> instructions to make this LLB load IMG3 with any identity you want (use <a class="blacklink" href="http://armconverter.com">ARM To Hex Converter</a> to convert ARM instructions in their hexadecimal representations). For example, <span class="cli">ibec</span>:<br><br>
+<img class="align" src="resources/do_bootpatched.png"><br>
+Signature checks must be patched as well, obviously. It may be easily done using <b>iBoot32Patcher</b><br><br>
+
+<h2>Flashing iBEC</h2>
+First of all patch (and pack it into IMG3 obviously) iBEC as described in <a class="blacklink" href="patchingbootchain.html">Part 5</a> of this guide and make sure it works properly thrice<br><br>
+Unfortunately, you'll need to restore your device, because the best way to flash non-original IMG3s to device is packing them into IPSW and adding them to <span class="cli">all_flash</span> manifest<br><br>
+
+Unzip IPSW, go to <span class="cli">all_flash</span> directory and place your iBEC here with name beginning with <span class="cli">iBoot</span> or some else original component's name:<br>
+<img class="align" src="resources/all_flash.png">
+...because otherwise <b>idevicerestore</b> will fail restore:<br>
+<img class="align" src="resources/failedrestore.png">
+
+Now open <span class="cli">manifest</span> and add your iBEC's filename to the end of it:<br>
+<img class="align" src="resources/manifest.png">
+
+Pack your IPSW and restore. You'll know iBEC was flashed properly if its name appeared in <b>idevicerestore</b>'s log:
+<img class="align" src="resources/flashed.png">
+
+In <b>Way Out</b> disable <b>multi_kloader</b> option and type path to your patched LLB (it must remain unpacked raw image):<br><br>
+<img class="align" src="resources/WayOutLLB.png"><br><br>
+
+<center><a href="https://nyansatan.github.io/dualboot/" class="menu"><b>Back to main page</b></a></center><br>
+
+</div>
+
+<footer>
+Nyan Satan, 2017<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+</footer>
+
+</body>
+
+</html>
