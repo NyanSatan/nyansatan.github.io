@@ -36,8 +36,8 @@ Now send your RootFS image you prepared in Part 1 to <span class="cli">/mnt2</sp
 After it run <b>ASR</b>:
 <p class="cli">asr restore --source /mnt2/UDZO.dmg --target /dev/disk0s1s3 --erase</p>
 <img class="align" src="resources/asr.png"><br>
-<div class="desc"><span class="cli">Validating source</span> will take a while, no worries</div><br>
-After it succeeds you may run <b>fsck_hfs</b> just for sure:
+<div class="desc"><span class="cli">Validating source</span> takes a while, no worries</div><br>
+After it succeeds, you may run <b>fsck_hfs</b> just for sure:
 <p class="cli">fsck_hfs -f /dev/disk0s1s3</p>
 <img class="align" src="resources/fsck.png"><br>
 That's all, RootFS image is restored<br><br>

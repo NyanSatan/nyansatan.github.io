@@ -18,21 +18,16 @@
 <h1>Patching bootchain</h1>
 Most difficult part of entire guide. We have to make iBSS automatically load iBEC from some point of memory, make iBEC mount third partition and take our previously decrypted boot components therefrom. Also, we should add special property to Device Tree to disable use of <i>Effaceable Storage</i>. This will fix literally every issue related with data-protection
 <h2>iBSS</h2>
+<i>iBSS patches are only necessary for iPhones and iPods. iPads may jump straight to iBEC without any issues, but iPhones and iPods will have disabled display in this case</i><br><br>
+
 First of all, decrypt and unpack iBSS image:
 <p class="cli">reimagine original_iBSS iBSS.raw -iv iv -k key -r</p>
 Patch it out of signature checks using <b>iBoot32Patcher</b>:
 <p class="cli">iBoot32Patcher iBSS.raw iBSS.prepatched</p><br>
 <img class="align" src="resources/patcher.png"><br>
-<div class="separator"></div><br>
-<b>Important note</b>: patches for iBSS described below don't work properly on S5L8940-family devices. Second image is cleared from memory, so jump isn't performed:<br>
-<center><blockquote class="twitter-tweet" data-conversation="none" data-lang="en"><p lang="en" dir="ltr">i too don’t own an n94. this affects all s5l894x devices though. it’s due to the memory layout. 2nd image gets zeroed before being used. (…)</p>&mdash; Jonathan Seals (@JonathanSeals) <a href="https://twitter.com/JonathanSeals/status/868547319637069824">May 27, 2017</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></center>
-<br>
-iPads can go straight to iBEC, but iPhone 4s (iPod touch 5 probably too, no one tried due to lack of firmware keys) doesn't work this way. On iPhones screen won't work if you jumped to iBoot Stage 2 (flashable iBoot or iBEC) without passing iBoot Stage 1 (DFU-bootloaders - iBSS or LLB)<br><br>
-It's still possible to untether dualboot on iPhone 4s, but it's much more complicated. Look to <a href="alternativeuntethermethod.html" class="blacklink"><b>Alternative untether method</b></a> chapter
-<br><br><div class="separator"></div><br>
 Now open it in disassembler (<b>IDA Pro</b> in my case) and switch CPU architecture to <b>ARM Little-endian</b>:<br><br>
 <img class="align" src="resources/armset.png"><br>
-Rebase program (<span class="cli">Edit</span>-><span class="cli">Segments</span>-><span class="cli">Rebase program</span>) to value at 0x20 - 0x40 (0x84000040 - 0x40 = 0x84000000 in this case:<br><br>
+Rebase program (<span class="cli">Edit</span>-><span class="cli">Segments</span>-><span class="cli">Rebase program</span>) to value at <b>ROM:0x00000020 minus 0x40</b> (0x84000040 - 0x40 = 0x84000000 in this case):<br><br>
 <img class="align" src="resources/rebase.png"><br>
 Then you should find kind of "initialization" function. It always contains <span class="cli">LDR</span> instruction with <span class="cli">iBSS ready, asking for DFU...</span> string, so you can easily find it:<br><br>
 <img class="align" src="resources/init.png"><br>
@@ -40,27 +35,34 @@ Preparations done, now patch it!
 <h3>Load address patch</h3>
 In <b>initialization</b> function, there's something like <span class="cli">MOVT.W R4, #0x4FE0</span>. It will immediately rushes in your eyes, because hex value has orange color:<br><br>
 <img class="align" src="resources/loadaddr.png"><br>
-This value tells iBSS where it should find iBEC to jump to. In case of N90AP, iOS 6.1.3 it's <span class="cli">#0x4FE0</span> (so iBSS will look at 0x4FE00000), but may be different in bootloaders for other devices/versions. <b>multi_kloader</b> places second image at 0x7FD00000, so we have to replace current instruction by <span class="cli">MOVT.W R4, #0x7FD0</span> Come to hex view and replace current hex representation of instruction by <span class="cli">C7 F6 D0 74</span>. Now it should look in such way:<br><br>
+This value tells iBSS where it should find iBEC to jump to. In case of N90AP, iOS 6.1.3 it's <span class="cli">#0x4FE0</span> (so iBSS will look at 0x4FE00000), but may be different in bootloaders for other devices/versions. <b>multi_kloader</b> places second image at <b>0x7FD00000</b>, so we have to replace current instruction by <span class="cli">MOVT.W R4, #0x7FD0</span> Come to hex view and replace current hex representation of instruction by <span class="cli">C7 F6 D0 74</span>. Now it should look in such way:<br><br>
 <img class="align" src="resources/patchedloadaddr.png"><br>
+<div class="separator"></div><br>
+But in case of A5-family devices, iBSS usually clears memory at <b>0x7FD00000</b>, so jump isn't performed, obviously. If you have device with Apple A5 SoC (no matter which revision, this applies to all of them), you have to replace this instruction with <span class="cli">MOVT.W R4, #0xBFD0</span> (<span class="cli">CB F6 D0 74</span> in hex):<br><br>
+<img class="align" src="resources/a5patchedloadaddr.png"><br>
+Since iBSS now will look to different point in memory, we also need different <b>multi_kloader</b> which places iBEC to this point in memory. <b>4smulti_kloader</b> is built-in to <b>dualbootstuff</b> and <b>Way Out</b>. The only difference of this multi_kloader comparing to original is that it places second image at <b>0xBFD00000</b> instead of <b>0x7FD00000</b><br><br> Thanks to @JonathanSeals for this trick and modified <b>multi_kloader</b>!<br><br>
+<div class="separator"></div>
 <h3>Disable usb_wait_for_image patch</h3>
 Now we have to disable iBSS'es USB routines. In order to do that we'll need to find the place where <b>usb_wait_for_image</b> function called and replace this call by <span class="cli">NOP</span>s<br><br>
 How to find this function? As you probably know, iDevice with running DFU-bootloader is usually recognized as USB device named <span class="cli">Apple Mobile Device (DFU Mode)</span>. It should be easy to determine where this string is loaded and after that find <b>usb_wait_for_image</b> root function call by following CODE XREFs<br><br>
 Search for <span class="cli">Apple Mobile</span> string in hex-editor. You'll find this string somewhere in the end of file:<br><br>
 <img class="align" src="resources/applemobile.png">
-<div class="desc"> It's surely possible to search for this string right in <b>IDA</b>, but its string recognition routines does their work awfully bad sometimes, so in some cases you won't find what you need</div><br>
+<div class="desc"> It's surely possible to search for this string right in <b>IDA</b>, but its string recognition routines do their work awfully bad sometimes, so in some cases you won't find what you need</div><br>
 Then search for address of found string (<span class="cli">CFAF</span> in this case):<br><br>
 <img class="align" src="resources/applemobile2.png"><br>
-This time it'll find 2 <span class="cli">LDR R0, =0x8400CFAF</span> instructions. Go to one of them and follow <i>CODE XREFs</i> until you back to <b>initialization</b> function:<br><br>
+This time it'll find 2 <span class="cli">LDR R0, =0x8400CFAF</span> instructions. Go to one of them and follow <i>CODE XREFs</i> until you back to <b>initialization</b> function<br><br>
+Note that <b>IDA</b> points cursor to place when function called when you follow <i>CODE XREFs</i><br><br>
 <img class="align" src="resources/xref1.png"><br>
+<div class="separator"></div><br>
 <img class="align" src="resources/xref2.png"><br>
-Note that <b>IDA</b> points cursor to place when function called when you follow <i>CODE XREFs</i>
+<div class="separator"></div><br>
 <img class="align" src="resources/xref3.png"><br>
-Aye, we found it! <span class="cli">sub_8400993C</span> is <b>usb_wait_for_image</b> routine we looked for. All we need is replace this <span class="cli">BL</span> by <span class="cli">NOP</span> <span class="cli">NOP</span> (<span class="cli">NOP</span> means <i>No Operation</i>). Hex representation of <span class="cli">NOP</span> instruction is <span class="cli">00 BF</span>. Switch to hex view and replace 4 bytes of <span class="cli">BL</span> by 2x <span class="cli">00 BF</span>:<br><br>
+We found it! <span class="cli">sub_8400993C</span> is <b>usb_wait_for_image</b> routine we looked for. All we need is replace this <span class="cli">BL</span> by <span class="cli">NOP</span> <span class="cli">NOP</span> (<span class="cli">NOP</span> means <i>No Operation</i>). Hex representation of <span class="cli">NOP</span> instruction is <span class="cli">00 BF</span>. Switch to hex view and replace 4 bytes of <span class="cli">BL</span> by 2x <span class="cli">00 BF</span>:<br><br>
 <img class="align" src="resources/before.png"><br>
 <img class="align" src="resources/after.png"><br>
 
 <div class="separator"></div>
-<h3>What if you haven't found LDRs</h3>
+<h4>What if you haven't found LDRs</h4>
 As I said above, unfortunately, string recognizer in <b>IDA</b> works extremely bad. That's why you couldn't find your strings sometimes. For example, here is how <span class="cli">Apple Mobile Device (DFU Mode)</span> string was recognized in some bootloader:<br><br>
 <img class="align" src="resources/applemobilesliced.png"><br>
 First part of the string is just byte mess. You shouldn't be surprised string wasn't found<br><br>
@@ -75,7 +77,13 @@ Select it:<br><br>
 Right-click and <i>Undefine</i>. XREF should now appear in the right place:<br><br>
 <img class="align" src="resources/undefined.png"><br>
 Search for your string's address again or just follow XREF
-<br><br><div class="separator"></div>
+<br>
+
+<h3>BLT patch</h3>
+On some devices (usually on A5 Rev. A, on some else probably too) one additional iBSS patch is required. There is conditional branch instruction (<span class="cli">BLT</span>) shortly after <span class="cli">BL usb_wait_for_image</span>:<br><br>
+<img class="align" src="resources/bltpatch.png"><br>
+It may cause infinite loop, so replace it with <span class="cli">NOP</span>:<br><br>
+<img class="align" src="resources/bltpatched.png"><br>
 
 <h3>Producing difference file and applying it</h3>
 <b>File</b> - <b>Produce files</b> - <b>Produce DIF file...</b><br><br>
