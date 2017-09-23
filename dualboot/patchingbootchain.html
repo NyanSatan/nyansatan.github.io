@@ -20,6 +20,8 @@ Most difficult part of entire guide. We have to make iBSS automatically load iBE
 <h2>iBSS</h2>
 <i>iBSS patches are only necessary for iPhones and iPods. iPads may jump straight to iBEC without any issues, but iPhones and iPods will have disabled display in this case</i><br><br>
 
+<i><b>multi_kloader</b> works awfully unreliably on such old devices as iPhone 3GS and doesn't work at all on iOS 5 and older. In this case you should use <a class="blacklink" href="alternativeuntethermethod.html">alternative untether method</a></i><br><br>
+
 First of all, decrypt and unpack iBSS image:
 <p class="cli">reimagine original_iBSS iBSS.raw -iv iv -k key -r</p>
 Patch it out of signature checks using <b>iBoot32Patcher</b>:
@@ -37,11 +39,21 @@ In <b>initialization</b> function, there's something like <span class="cli">MOVT
 <img class="align" src="resources/loadaddr.png"><br>
 This value tells iBSS where it should find iBEC to jump to. In case of N90AP, iOS 6.1.3 it's <span class="cli">#0x4FE0</span> (so iBSS will look at 0x4FE00000), but may be different in bootloaders for other devices/versions. <b>multi_kloader</b> places second image at <b>0x7FD00000</b>, so we have to replace current instruction by <span class="cli">MOVT.W R4, #0x7FD0</span> Come to hex view and replace current hex representation of instruction by <span class="cli">C7 F6 D0 74</span>. Now it should look in such way:<br><br>
 <img class="align" src="resources/patchedloadaddr.png"><br>
-<div class="separator"></div><br>
+<h4>S5L8940-family notes</h4>
 But in case of A5-family devices, iBSS usually clears memory at <b>0x7FD00000</b>, so jump isn't performed, obviously. If you have device with Apple A5 SoC (no matter which revision, this applies to all of them), you have to replace this instruction with <span class="cli">MOVT.W R4, #0xBFD0</span> (<span class="cli">CB F6 D0 74</span> in hex):<br><br>
 <img class="align" src="resources/a5patchedloadaddr.png"><br>
-Since iBSS now will look to different point in memory, we also need different <b>multi_kloader</b> which places iBEC to this point in memory. <b>4smulti_kloader</b> is built-in to <b>dualbootstuff</b> and <b>Way Out</b>. The only difference of this multi_kloader comparing to original is that it places second image at <b>0xBFD00000</b> instead of <b>0x7FD00000</b><br><br> Thanks to @JonathanSeals for this trick and modified <b>multi_kloader</b>!<br><br>
-<div class="separator"></div>
+Since iBSS now will look to different point in memory, we also need different <b>multi_kloader</b> which places iBEC to this point in memory. <b>4smulti_kloader</b> is built-in to <b>dualbootstuff</b> and <b>Way Out</b>. The only difference of this multi_kloader comparing to original is that it places second image at <b>0xBFD00000</b> instead of <b>0x7FD00000</b><br><br> Thanks to @JonathanSeals for this trick and modified <b>multi_kloader</b>!<br>
+
+<h4>S5L8920-family notes</h4>
+For S5L8920 SoC (used in iPhone 3GS) and S5L8922 (used in iPod touch 3) patch is different a bit. You have to replace this <span class="cli">MOVS R1, #0x3FF00000</span> by <span class="cli">MOVS R1, #0x6FD00000</span>:<br><br>
+<img class="align" src="resources/8920loadaddr.png"><br>
+But why <b>0x6FD00000</b> instead of <b>0x7FD00000</b>? Because function called right before this <span class="cli">MOVS R1, #0x3FF00000</span> (<span class="cli">sub_84005F00</span> in this case) writes <b>0x10000000</b> to <b>R0</b>:<br><br>
+<img class="align" src="resources/r0manipulation.png"><br>
+And <span class="cli">ADD R0, R1</span> right after <span class="cli">MOVS R1, #0x3FF00000</span> adds value from <b>R1</b> to <b>R0</b>. As result it gets correct load address value — <b>0x10000000</b> + <b>0x3FF00000</b> = <b>0x4FF00000</b> originally or <b>0x10000000</b> + <b>0x6FD00000</b> = <b>0x7FD00000</b> after you patch <span class="cli">MOVS R1, #0x3FF00000</span>:<br><br>
+<img class="align" src="resources/8920patchedloadaddrhex.png"><br>
+Correctly patched load address for S5L8920 should look in this way:<br><br>
+<img class="align" src="resources/8920patchedloadaddr.png"><br>
+
 <h3>Disable usb_wait_for_image patch</h3>
 Now we have to disable iBSS'es USB routines. In order to do that we'll need to find the place where <b>usb_wait_for_image</b> function called and replace this call by <span class="cli">NOP</span>s<br><br>
 How to find this function? As you probably know, iDevice with running DFU-bootloader is usually recognized as USB device named <span class="cli">Apple Mobile Device (DFU Mode)</span>. It should be easy to determine where this string is loaded and after that find <b>usb_wait_for_image</b> root function call by following CODE XREFs<br><br>
@@ -108,7 +120,7 @@ Before loading gotten image into disassembler, let's talk about applied boot arg
 </ul>
 Now open it in disassembler (<b>IDA Pro</b> in my case) and switch CPU architecture to <b>ARM Little-endian</b>:<br><br>
 <img class="align" src="resources/armset_ibec.png"><br>
-Rebase program (value at 0x20 - 0x40 (0x5FF00040 - 0x40 = 0x5FF00000 in this case)):<br><br>
+Rebase program to value at <b>ROM:0x00000020 minus 0x40</b> (0x5FF00040 - 0x40 = 0x5FF00000 in this case):<br><br>
 <img class="align" src="resources/rebase_ibec.png"><br>
 
 
