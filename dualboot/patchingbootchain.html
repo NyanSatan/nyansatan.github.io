@@ -35,7 +35,7 @@ Then you should find kind of "initialization" function. It always contains <span
 <img class="align" src="resources/init.png"><br>
 Preparations done, now patch it!
 <h3>Load address patch</h3>
-In <b>initialization</b> function, there's something like <span class="cli">MOVT.W R4, #0x4FE0</span>. It will immediately rushes in your eyes, because hex value has orange color:<br><br>
+In <b>initialization</b> function, there's something like <span class="cli">MOVT.W R4, #0x4FE0</span>. It will immediately rush in your eyes, because hex value usually has orange color:<br><br>
 <img class="align" src="resources/loadaddr.png"><br>
 This value tells iBSS where it should find iBEC to jump to. In case of N90AP, iOS 6.1.3 it's <span class="cli">#0x4FE0</span> (so iBSS will look at 0x4FE00000), but may be different in bootloaders for other devices/versions. <b>multi_kloader</b> places second image at <b>0x7FD00000</b>, so we have to replace current instruction by <span class="cli">MOVT.W R4, #0x7FD0</span> Come to hex view and replace current hex representation of instruction by <span class="cli">C7 F6 D0 74</span>. Now it should look in such way:<br><br>
 <img class="align" src="resources/patchedloadaddr.png"><br>

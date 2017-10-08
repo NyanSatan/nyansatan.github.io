@@ -1,14 +1,14 @@
 Package: com.nyansatan.WayOut
-Version: 1.5-1F66a
+Version: 1.5.1-1F68
 Architecture: iphoneos-arm
 Maintainer: Nyan Satan
 Installed-Size: 8208
 Depends: firmware (>= 5.0)
 Filename: ./deb_files/WayOut.deb
-Size: 8060136
-MD5sum: 868711ab81a1da0176b72d3d420f3b42
-SHA1: 0d9ecf27f89b38865404ec266856c4d34b391164
-SHA256: c4ca362a655ee2ab4baae214b0e8da10351fe337e129929bff63ec3ff5ed4a43
+Size: 8056682
+MD5sum: f960c77f70c4e79f2604ed0084dc0b96
+SHA1: 16a7bd227c40e5d10928fd7d9394159fdabac67a
+SHA256: ef219800a7209e21d4ad4b0f0ff92a462d4e15177a89fe0cd93685a7250853ac
 Section: System
 Description: Way Out - GUI for kloader in the spirit of classical Setup.app. Developed by @nyan_satan. Thanks to: @winocm, @xerub, @JonathanSeals, @axi0mX
 Author: @nyan_satan
