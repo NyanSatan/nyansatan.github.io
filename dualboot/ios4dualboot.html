@@ -67,12 +67,12 @@ Disabling use of LwVM causes changing standard BSD name for partition device nod
 Unluckily for us, different BSD names of disks cause a lot of problems with jailbreak. Both <b>p0sixspwn</b> and <b>Pangu 7</b> fail sooner or later step. That means we have to use something else to jailbreak device
 
 <h3>iOS 6</h3>
-Pretty easy case. Download latest <b>redsn0w</b> and iOS 6.0 IPSW for your device (this is no mistake, you should download exacty this version). Jailbreak device. Unfortunately, redsn0w messes <span class="cli">fstab</span>. Instead of removing unwanted options of mounting second partition, it simply removes original fstab and copies new one. I highly that developers behind redsn0w could expect that someone will use GPT on iOS 5+, and that’s why redsn0w’s fstab contains <span class="cli">/dev/disk0s1s1</span> and <span class="cli">/dev/disk0s1s2</span> instead of <span class="cli">/dev/disk0s1</span> and <span class="cli">/dev/disk0s2s1</span>. Using SSH ramdisk (or something else) manually fix fstab and perform tethered boot using redsn0w. You may now install p0sixspwn untether from Cydia
+Pretty easy case. Download latest <b>redsn0w</b> and iOS 6.0 IPSW for your device (this is no mistake, you should download exacty this version). Jailbreak device. Unfortunately, redsn0w messes <span class="cli">fstab</span>. Instead of removing unwanted options of mounting second partition, it simply removes original fstab and copies new one. I highly doubt that developers behind redsn0w could expect that someone will use GPT on iOS 5+, and that’s why redsn0w’s fstab contains <span class="cli">/dev/disk0s1s1</span> and <span class="cli">/dev/disk0s1s2</span> instead of <span class="cli">/dev/disk0s1</span> and <span class="cli">/dev/disk0s2s1</span>. Using SSH ramdisk (or something else) manually fix fstab and perform tethered boot using redsn0w. You may now install p0sixspwn untether from Cydia
 
 <h3>iOS 7</h3>
 Much, much harder. There is no <b>redsn0w</b> for iOS 7. There is <b>opensn0w</b> though, but its implementation of limera1n makes my iPhone 4 reboot, so I’m unable to use it<br><br>
 First of all, download OS X version of <a class="blacklink" href="http://en.7.pangu.io">Pangu 7.1</a> and <a class="blacklink" href="http://www.newosxbook.com/tools/jtool.html">jtool</a><br><br>
-If you look inside Pangu's .app container you won't see almost anything, but binary and app icon. To make scammer's lives a little bit harder, developers packed all resources (graphics, IPA for injection, tarballs, etc.) rigth into Mach-O executable. Let's look into its structure:<br>
+If you look inside Pangu's .app container you won't see almost anything, but binary and app icon. To make scammer's lives a little bit harder, developers packed all resources (graphics, IPA for injection, tarballs, etc.) right into Mach-O executable. Let's look into its structure:<br>
 <p class="cli">jtool -l path_to_pangu_executable</p><br>
 <img class="align" src="resources/pangu_mach_o_structure.png"><br>
 All stuff we need is stored in highlighted areas. Let's extract them:<br>
@@ -90,7 +90,7 @@ mv pangu.__TEXT Cydia.tar</p>
 mv pangu.__TEXT APT.tar</p>
 <p class="cli">gunzip pangu.__TEXT.__objc_cons7 -S .__objc_cons7 -k<br>
 mv pangu.__TEXT panguaxe-APT.tar</p><br>
-We have to make tiny patches for untether binary. On startup it remounts <span class="cli">/dev/disk0s1s1</span>, but since we our System-partition called <span class="cli">/dev/disk0s1</span>, untether would fail. Let's fix that - first unpack tarball:<br>
+We have to make tiny patches for untether binary. On startup it remounts <span class="cli">/dev/disk0s1s1</span>, but since our System-partition is called <span class="cli">/dev/disk0s1</span>, untether would fail. Let's fix that - first unpack tarball:<br>
 <p class="cli">mkdir ./panguaxe<br>
 tar -xvf panguaxe.tar -C panguaxe</p><br>
 Extract entitlements:<br>
