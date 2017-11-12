@@ -19,7 +19,7 @@
 
 <h1>Alternative untether method</h1>
 
-Technique we'll talk about was originally discovered by <b>@ShadowLee19</b><br><br>
+Technique we'll talk about was originally discovered by @iH8sn0w and used in his <b>iBooty</b>. For dualboot it was first used by <b>@ShadowLee19</b><br><br>
 
 Instead of kloadering both iBSS+iBEC and making them load orderly, let's follow more native way - 
 use NOR-section of device's NAND to store secondary bootloader, just where all original IMG3s are stored<br><br>
@@ -31,7 +31,7 @@ So our untether will work in following way:<br>
 <li>LLB looks into NOR for image with identity <span class="cli">ibec</span> (special patch is needed, originally it looks for <span class="cli">ibot</span>) and loads it. iBEC image must still be decrypted</li><br>
 <li>iBEC mounts third partition, grabs boot components and loads them all just like in case of iBSS+iBEC method</li><br>
 </ol>
-
+<i>@ShadowLee19's technique is a little bit different by the way. Instead of iBEC he used iBoot, which also requires DeviceTree and logos to be flashed to NOR as well</i><br><br>
 <h2>Patching LLB</h2>
 
 After its initialization LLB looks for IMG3 with tag <span class="cli">ibot</span> and if such image was found, LLB will validate, decrypt and jump to it, otherwise it will switch to DFU-Mode:<br><br>

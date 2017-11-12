@@ -16,17 +16,17 @@ Icon: file:///Applications/WayOut.app/icon6.png
 Name: Way Out
 
 Package: com.nyansatan.dualbootstuff
-Version: 1.0.4
+Version: 1.0.5
 Architecture: iphoneos-arm
 Maintainer: Nyan Satan
-Installed-Size: 1806
+Installed-Size: 2694
 Filename: ./deb_files/dualbootstuff.deb
-Size: 901958
-MD5sum: 436e68687f4b702d05a73940f73c10e1
-SHA1: 78d519e1699d1857d6f115ebaa80d3bc07a39b3a
-SHA256: c9e0d67f4a67ba450473dbe95b9afd3c02c6c4206d1e5e3a5c1ac7f8adc5e409
+Size: 1313004
+MD5sum: d2d9540b65244fa4cd9c411391028e58
+SHA1: 630f2477f29507688b688d0ea956bc52378432d3
+SHA256: 639e9e8fbaa82fe1fd80293e7e351c0d56f4eb7d17eb0606d22ef64a34f4eba7
 Section: System
-Description: Package of tools for iOS dualbooting. It contains hfs_resize, gptfdisk, ASR, kloader, multi_kloader, attach, detach, NoMoreSIGABRT, fixkeybag and some /etc files
-Author: @danzatt, @winocm, @xerub, @JonathanSeals, @axi0mX, @Apple, @comex, Roderick W. Smith, @nyan_satan
+Description: Package of tools for iOS dualbooting. It contains hfs_resize, gptfdisk, ASR (from iOS 4.0, 5.0.1, 6.1.3), kloader (including @axi0mX's fork), multi_kloader (including modified one for A5), ibsspatch, attach, detach, ttbthingy, NoMoreSIGABRT, fixkeybag, TwistedMind2 and some /etc files
+Author: @danzatt, @winocm, @xerub, @JonathanSeals, @axi0mX, @Apple, @comex, Roderick W. Smith, people behind iphone-dataprotection project, @nyan_satan
 Name: dualbootstuff
 

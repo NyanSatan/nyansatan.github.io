@@ -27,7 +27,7 @@ In case of successful decryption, you'll see something like this in the end of l
 <img class="align" src="resources/decryption.png">
 
 <h2>Convertion</h2>
-To be able to pass our decrypted image to <b>ASR</b>, we need to convert it to <b>UDZO</b> Image Format - UDIF zlib-compressed read-only image. After decryption it becomes <b>UDRW</b> - UDIF read/write image<br><br>
+To be able to pass our decrypted image to <b>ASR</b>, we need to convert it to <b>UDZO</b> Image Format - UDIF zlib-compressed read-only image. After decryption it becomes raw HFS+ volume (just like if you dump some partition to file using <b>dd</b>)<br><br>
 We still need to use <b>dmg</b>:
 <p class="cli">dmg build decrypted.dmg UDZO.dmg</p>
 In the end of process you'll see something like this:<br><br> 

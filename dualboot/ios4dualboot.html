@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
+
+<title>iOS Dualboot - iOS 4</title>
+
+</head>
+
+<body>
+<div class="main">
+<h1>iOS 4 Dualboot</h1>
+Huge thanks to <b>@JonathanSeals</b> for fixing my grammar/fact mistakes!<br><br>
+<b>Important note:</b> the information below is given for educational purposes. Currently this is hell to implement, dangerous and unstable. Also it currently works with iOS 4.3.x only. Follow these instructions at your own risk. Don't read it unless you have made sure that you understand everything in my original guide!<br><br>
+<div class=separator></div><br>
+iOS 4 dualboot was known as something nearly-impossible for quite a long time<br><br>
+
+The problem was that in 2011 with the release of iOS 5, Apple introduced <b>LwVM</b> - <b>L</b>ight<b>w</b>eight <b>V</b>olume <b>M</b>anager - a new type of partition table and corresponding kernel extension. The LwVM kext reads partition table and converts it to a “fake” <b>GPT</b> published at <span class="cli">/dev/disk0s1</span>. This fake GPT is like a middle layer between system services (or you) and the real partition table published on <span class="cli">/dev/disk0</span>. When you rewrite the GPT on <span class="cli">disk0s1</span>, LwVM immediately detects that, checks the GPT’s validity, and if it’s alright, LwVM converts to its own partition table format and writes it back to disk0. This makes the partitioning process much easier and safer. That’s one of the reasons why Apple added LwVM support to kernel (it was in <b>iBoot</b> since iOS 4.2) the same time they added OTA updates (OTA update process involves creation of a new partition (also known as <b>Upgrade</b> partition) for storing the bootchain used for upgrading)<br><br>
+
+Unfortunately, iOS 4.x doesn’t support LwVM at the kernel level. Which kind of partition table does it use? Just good old GPT<br><br>
+
+Then how are we going to overcome that? Maybe create hybrid partition table on disk0? This might be a good idea! Our base iOS (5+) will use LwVM, second iOS (4.x) will use GPT and we’re happy, right?<br><br>
+
+Wrong! LwVM lays at 0x0 to 0x1000, GPT lays at 0x2000 to 0x8000, so they don’t overwrite each other, but the problem is that when modern (5+) iOS kernel detects both partition tables on disk0, it uses GPT instead of LwVM<br><br>
+<img class="align" src="resources/lwvm_gpt.jpg">
+<div class="desc">As you can see in the photo, the <b>LwVM</b> kext is loaded, but <b>BSD root</b> is disk0s1 instead of /dev/disk0s1s1. That means, <b>GPT</b> is used</div><br>
+Yes, iOS 5+ doesn’t necessarily need LwVM as partition table, it still supports good old GPT<br><br>
+
+Maybe we can convert LwVM to GPT? Sure we can, but LwVM isn’t just a partition table and kext which handles it, LwVM is also a part of the iOS data-protection model. That means, after you write GPT over LwVM, your base iOS most likely will die with awful pain. By the way, LwVM always traps write operations to disk0, and if you’re writing some nonsense (when disk0 contains LwVM table, valid GPT is considered as nonsense), it will undo your changes. Also, disk0 isn’t available for writing if any partition was mounted, so you can write to disk0 only in a ramdisk environment<br><br>
+
+We can’t create a hybrid LwVM+GPT table, we can’t convert GPT to LwVM, the only thing we can do is make the restore daemon format our NAND as GPT instead of LwVM<br><br>
+
+<h2>use-lwvm property</h2>
+
+Those who have patched the DeviceTree to disable use of Effaceable Storage probably noticed the <span class="cli">use-lwvm</span> property in it. Luckily for us, the kernel and its' extensions don’t care about this property, only <b>restored_external</b> relies on it. If it detects <span class="cli">use-lwvm</span>, it formats NAND as LwVM, if it doesn’t, it formats as GPT<br><br>
+
+<h2>Creating custom firmware</h2>
+<h3>iOS firmware for devices without personlized baseband firmware</h3>
+
+Patch out signature checks in iBSS and iBEC, clone DeviceTree and replace <span class="cli">use-lwvm</span> with any other string of same length. Replace path to <b>RestoreDeviceTree</b> in BuildManifest<br><br>
+<b>Important note:</b> iBoot32Patcher fails to patch signature checks in iBoot Stage 2 (iBEC/iBoot) for iPhone 3GS for iOS 6.x. That's why I provide a patch for 6.1.6 iBEC <a class="blacklink" href="patches/iBEC-1537.9.55_iPhone2,1.html">here</a>. Also, iPhone 3GS (iPod touch 3 probably too) experiences problems with multi_kloader. I highly recommend to use NOR-flashing method to untether and flash patched iBEC (read below about how to do it)<br><br>
+
+<h3>iOS firmware for devices with personalized baseband firmware</h3>
+This is only iPhone 4 (if we're talking about iOS 4 compatible devices). For some unobvious reason, <b>restored_external</b> (at least on 7.1.2) refuses to update the baseband firmware when DeviceTree is custom. That means we’re unable to create custom firmware as easily as we can for other devices since we should also patch the options plist in the restore ramdisk in order to disable the baseband upgrade. But since we modify the ramdisk, we now have to decrypt the root filesystem image, and since we decrypt the filesystem, we now have to patch ASR, and since we have to patch ASR, we have to deal with AMFI. Luckily for us, there are iOS 7.1.2 xpwn bundles for iPhone3,1 and 3,3 in <b>Odysseus</b> (not for 3,2 though, but it doesn’t support iOS 4 anyway). Patch IPSW using xpwn and perform same manipulations with DeviceTree as if you’d created CFW for other device. Restore process of such CFW with original idevicerestore will most likely fail on early stage (have no idea why currently, iBSS doesn't jump to iBEC). Use @xerub’s fork from Odysseus or special hack:<br>
+<ol type="1">
+<li>Patch signature checks in iBSS and pack it into an encrypted Img3</li><br>
+<li>In iBEC from custom IPSW (Img3, no need to repack) replace <span class="cli">00 00 00 40</span> at offset 0x41AA8...<br>
+<img class="align" src="resources/go_unpatched.png">
+...by <span class="cli">71 11 F0 5F</span>:<br>
+<img class="align" src="resources/go_patched.png">
+This patch is required because otherwise iBEC won't be able to jump to other iBEC (idevicerestore always sends iBEC if detects device in recovery mode, even if it's iBEC already). Odysseus's iBECs have patched pointer to <b>go</b> command (it prepares and executes images sent through USB), this is made to dump blobs - user sends payload and <b>go</b> command, and since pointer to this command has value of load address now, device executes code from load address where payload is stored after sending through USB. We changed <b>go</b> pointer to its original value, so jump to iBEC will be performed correctly
+</li><br>
+<li>Now put your iPhone to DFU mode, exploit with <b>limera1n</b>, send patched iBSS, send iBEC you've just replaced 4 bytes in</li><br>
+<li>Restore should now start correctly:<br>
+<p class="cli">idevicerestore -e IPSW</p></li>
+</ol><br>
+
+
+<h2>Jailbreaking</h2>
+Disabling use of LwVM causes changing standard BSD name for partition device nodes. When with LwVM, they are <span class="cli">/dev/disk0s1s1</span>, <span class="cli">/dev/disk0s1s2</span>, <span class="cli">/dev/disk0s1s3</span> and so on, but since with GPT as real table  (<span class="cli">disk0</span>) we lose fake GPT (<span class="cli">disk0s1</span>) as middle layer between real table and partitions, System-partition will be called <span class="cli">disk0s1</span> and Data will be... <span class="cli">disk0s2s1</span>. This must be strange to you, but we’ll talk about it later (this is related to <b>EMF</b> — part of data-protection model)<br><br>
+
+Unluckily for us, different BSD names of disks cause a lot of problems with jailbreak. Both <b>p0sixspwn</b> and <b>Pangu 7</b> fail sooner or later step. That means we have to use something else to jailbreak device
+
+<h3>iOS 6</h3>
+Pretty easy case. Download latest <b>redsn0w</b> and iOS 6.0 IPSW for your device (this is no mistake, you should download exacty this version). Jailbreak device. Unfortunately, redsn0w messes <span class="cli">fstab</span>. Instead of removing unwanted options of mounting second partition, it simply removes original fstab and copies new one. I highly that developers behind redsn0w could expect that someone will use GPT on iOS 5+, and that’s why redsn0w’s fstab contains <span class="cli">/dev/disk0s1s1</span> and <span class="cli">/dev/disk0s1s2</span> instead of <span class="cli">/dev/disk0s1</span> and <span class="cli">/dev/disk0s2s1</span>. Using SSH ramdisk (or something else) manually fix fstab and perform tethered boot using redsn0w. You may now install p0sixspwn untether from Cydia
+
+<h3>iOS 7</h3>
+Much, much harder. There is no <b>redsn0w</b> for iOS 7. There is <b>opensn0w</b> though, but its implementation of limera1n makes my iPhone 4 reboot, so I’m unable to use it<br><br>
+First of all, download OS X version of <a class="blacklink" href="http://en.7.pangu.io">Pangu 7.1</a> and <a class="blacklink" href="http://www.newosxbook.com/tools/jtool.html">jtool</a><br><br>
+If you look inside Pangu's .app container you won't see almost anything, but binary and app icon. To make scammer's lives a little bit harder, developers packed all resources (graphics, IPA for injection, tarballs, etc.) rigth into Mach-O executable. Let's look into its structure:<br>
+<p class="cli">jtool -l path_to_pangu_executable</p><br>
+<img class="align" src="resources/pangu_mach_o_structure.png"><br>
+All stuff we need is stored in highlighted areas. Let's extract them:<br>
+<p class="cli">jtool -e __TEXT.__objc_cons3 path_to_pangu_executable</p>
+<p class="cli">jtool -e __TEXT.__objc_cons5 path_to_pangu_executable</p>
+<p class="cli">jtool -e __TEXT.__objc_cons6 path_to_pangu_executable</p>
+<p class="cli">jtool -e __TEXT.__objc_cons7 path_to_pangu_executable</p><br>
+<img class="align" src="resources/pangu_extraction.png"><br>
+Resulting files are also ZIPed, let's unzip and rename them:<br>
+<p class="cli">gunzip pangu.__TEXT.__objc_cons3 -S .__objc_cons3 -k<br>
+mv pangu.__TEXT panguaxe.tar</p>
+<p class="cli">gunzip pangu.__TEXT.__objc_cons5 -S .__objc_cons5 -k<br>
+mv pangu.__TEXT Cydia.tar</p>
+<p class="cli">gunzip pangu.__TEXT.__objc_cons6 -S .__objc_cons6 -k<br>
+mv pangu.__TEXT APT.tar</p>
+<p class="cli">gunzip pangu.__TEXT.__objc_cons7 -S .__objc_cons7 -k<br>
+mv pangu.__TEXT panguaxe-APT.tar</p><br>
+We have to make tiny patches for untether binary. On startup it remounts <span class="cli">/dev/disk0s1s1</span>, but since we our System-partition called <span class="cli">/dev/disk0s1</span>, untether would fail. Let's fix that - first unpack tarball:<br>
+<p class="cli">mkdir ./panguaxe<br>
+tar -xvf panguaxe.tar -C panguaxe</p><br>
+Extract entitlements:<br>
+<p class="cli">jtool --ent -arch armv7 panguaxe/panguaxe > ent.plist</p><br>
+In hexadecimal editor find two <span class="cli">/dev/disk0s1s1</span> strings:<br>
+<img class="align" src="resources/pangu_untether_unpatched.png">
+...and replace <span class="cli">73 31</span> bytes by <span class="cli">00 00</span> bytes:<br>
+<img class="align" src="resources/pangu_untether_patched.png">
+Save result and re-sign binary with entitlements:<br>
+<p class="cli">ldid -S/Users/noname/ent.plist /Users/noname/panguaxe/panguaxe</p><br>
+Now we need to extract tarballs to device from ramdisk environment. Please pay attention to the way partitions should be mounted - first mount <span class="cli">/dev/disk0s1</span> to <span class="cli">/mnt1</span>, then mount <span class="cli">/dev/disk0s2s1</span> on <span class="cli">private/var</span> inside <span class="cli">/mnt1</span>:<br><br>
+<img class="align" src="resources/ramdisk_mount.png"><br><br>
+Send all tarballs we extracted from pangu7 Mach-O and patched untether binary to device (ramdisk doesn't have enough space, so send to <span class="cli">/mnt1/private/var</span>). Extract tarballs:<br>
+<p class="cli">tar -x --no-overwrite-dir -f /mnt1/private/var/panguaxe.tar -C /mnt1</p>
+<p class="cli">tar -x --no-overwrite-dir -f /mnt1/private/var/Cydia.tar -C /mnt1</p>
+<p class="cli">tar -x --no-overwrite-dir -f /mnt1/private/var/APT.tar -C /mnt1</p>
+<p class="cli">tar -x --no-overwrite-dir -f /mnt1/private/var/panguaxe-APT.tar -C /mnt1</p><br>
+<b>Important note:</b> use exactly same options of <b>tar</b> as I do<br><br>
+Remove untether:<br>
+<p class="cli">rm -rf /mnt1/panguaxe</p>
+...and replace with patched one:<br>
+<p class="cli">cp -a /mnt1/private/var/panguaxe /mnt1</p><br>
+Create <span class="cli">panguaxe.installed</span> files:<br>
+<p class="cli">touch /mnt1/panguaxe.installed</p>
+<p class="cli">touch /mnt1/private/var/mobile/Media/panguaxe.installed</p><br>
+Remove <span class="cli">,nosuid,nodev</span> from <span class="cli">fstab</span>:<br>
+<img class="align" src="resources/fstab_gpt_patched.png"><br><br>
+Add <span class="cli">SBShowNonDefaultSystemApps</span> property of type <b>boolean</b> to <span class="cli">/var/mobile/Library/Preferences/com.apple.springboard.plist</span> with value <span class="cli">YES</span><br><br>
+Reboot device. Cydia should appear on SpringBoard<br><br>
+
+<h2>Preparing RootFS</h2>
+Process is literally same as with <a class="blacklink" href="preparingrootfs.html">iOS 6 dualboot</a>
+
+<h2>Partitioning</h2>
+Partitioning is entirely different. I wrote tiny tool for that — <b>TwistedMind2</b> (“2” because first one was designed to create hybrid partition table). Usage is quite simple:<br>
+<p class="cli">TwistedMind2 -d1 &lt;new_size_of_first_data&gt; -s2 &lt;size_of_new_system&gt; -d2 &lt;size_of_new_data | max&gt;</p>
+<ul type=1>
+<li><b>-d1</b> — new size of your first system’s Data partition. Note that <b>TwistedMind2 </b>will immediately resize Data partition’s HFS to this value. Must be multiple of 8192 (blocksize)</li><br>
+<li><b>-s2</b> — size of System partition for second system. Must be equal to capacity of RootFS or greater and multiple of 8192 (blocksize)</li><br>
+<li><b>-d2</b> — size of Data partition for second system. Use “max” here and program will automatically calculate maximal possible size. Must be multiple of 8192 (blocksize)</li><br>
+<li><b>--emf</b> — this option gives EMF GUID to second Data partition. In this case, volume will be encrypted with EMF key and its dev node will be called disk0s4s1 (disk0s4 will exist too, but contain data in encrypted state). I’m not currently sure whether it’s somehow useful, so you may not use it</li><br>
+</ul>
+<p class="cli">TwistedMind2 -d1 3221225472 -s2 879124480 -d2 max</p>
+<img class="align" src="resources/twisted_mind.png"><br><br>
+Unluckily, <span class="cli">/dev/disk0</span> isn’t available for writing if partitions were mounted already. That’s why TwistedMind2 simply saves resulting GPT to file (<span class="cli">/TwistedMind2-XXXXXXXX</span> where <b>XXXXXXXX</b> is CRC32 sum of GPT header). Download this file to your computer and boot to ramdisk and write this file to <span class="cli">/dev/disk0</span> using <b>dd</b>:<br>
+<p class="cli">dd if=TwistedMind2-XXXXXXXX of=/dev/rdisk0 bs=8192</p>
+
+You may either use msft_guy’s <b>ssh_rd</b> or build your own which will just write your new GPT (in this case, you should add tiny delay before calling <b>dd</b>, because dev nodes usually aren’t initialized when <b>rc.boot</b> starts its execution)<br><br>
+
+<b>Important note:</b> there must NOT be even one reboot between running TwistedMind2 and writing GPT from ramdisk environment, because iOS will most likely resize Data’s HFS to its original size if there’s no other partition after it. If you made such mistake, run <b>TwistedMind2</b> one more time<br><br>
+
+Check your new disks:<br>
+<p class="cli">ls -la /dev/disk*</p>
+<img class="align" src="resources/new_gpt_disks.png"><br><br>
+If <span class="cli">/dev/disk0s3</span> and <span class="cli">/dev/disk0s4</span> (or also <span class="cli">/dev/disk0s4s1</span> if <b>--emf</b> option was chosen) appeared, partitioning is done properly<br><br>
+
+<h2>Restoring RootFS</h2>
+Absolutely <a class="blacklink" href="restoringrootfs.html">same as for iOS 6</a> with exception of that you have to use different device nodes when you work with <b>newfs_hfs</b><br><br>
+
+<h2>Modifying filesystems</h2>
+This process is different a little bit for iOS 4<br><br>
+
+First unmount <span class="cli">disk0s4</span> if it was mounted. Then regenerate it without ‘-P’ flag. Mount both <span class="cli">disk0s3</span> and <span class="cli">disk0s4</span>. Move <span class="cli">/private/var/*</span> to second Data:
+<p class="cli">mv -v /mnt1/private/var/* /mnt2</p><br>
+
+Create folder for system keybag on <span class="cli">/mnt2</span>:
+<p class="cli">mkdir /mnt2/keybags</p>
+
+<del><b>Experimental:</b> you may now patch second Data’s HFS header to make it protected:
+
+<p class="cli">NoMoreSIGABRT disk0s4</p>
+
+After that this partition should be correctly mounted on both systems. For some reason when you generate HFS with ‘-P’ flag iOS 4 refuse to mount it, but if you create unprotected volume first and then convert it, both system should work properly with it. I haven’t deeply investigated this thing yet, so I recommend not to use it for first time and leave second Data unprotected</del> No, it doesn't work that way<br><br>
+
+<h3>Now fix fstab</h3>
+<p class="cli">nano /mnt1/etc/fstab</p>
+
+Replace <span class="cli">disk0s1</span> by <span class="cli">disk0s3</span>, and <span class="cli">disk0s2</span> by <span class="cli">disk0s4</span> (or <span class="cli">disk0s4s1</span> if you have EMF enabled)
+
+<h3>Fix system keybag</h3>
+Unfortunately, truly unfortunately, but <b>no-effaceable-storage</b> isn’t an option on iOS 5 and older. That means we have to copy system keybag from first system to second one. This doesn’t seem difficult for the first look, but the problem is that keybags had been changing in time, and that’s why keybag from newer OS may be incompatible with older OS. Here is a list of known keybag versions:
+<ul type=1>
+<li>Version 1: iOS 4.0-4.2.x</li><br>
+<li>Version 2: iOS 4.3.x</li><br>
+<li>Version 3: iOS 5.x-6.x</li><br>
+<li>Version 4: iOS 7.x-9.0.x (maybe newer  iOS versions still have this keybag version, but latest one I personally looked into was 9.0.0)</li><br>
+</ul>
+I improved fixkeybag — now it not just generates, but also downgrades keybags (to version 2). Usage:
+<p class="cli">fixkeybag [-v2] [key 0x835]</p>
+<ul>
+<li><b>No arguments provided:</b> fixkeybag generates new keybag, but only if it doesn't exist at <span class="cli">/private/var/keybags/systembag.kb</span></li><br>
+<li><b>-v2:</b> takes current system keybag and downgrades it to 2nd version by cutting new unsupported tags (<span class="cli">KTYP</span> and <span class="cli">PBKY</span>)</li><br>
+<li>use your <b>key 0x835</b> as third argument along with <b>-v2</b> to avoid kernel patching every time you downgrade keybag. We'll talk about kernel patching, keys and why we should care about them below</li><br>
+</ul>
+
+Please note that you need special kernel patch to run <b>fixkeybag</b> in this mode for first time. In order to fix <span class="cli">SIGN</span> tag of downgraded keybag we need to have Key 0x835. Download <b>iphone-dataprotection</b> code and build <b>ttbthingy</b> (it's inside ramdisk_tools). This utility patches <b>IOAESAccelerator</b> kernel extension to allow use of UID-key in userland. Execute it on device. If it crashed with <span class="cli">Segmentation fault: 11</span>, just run it again:
+<p class="cli">ttbthingy</p>
+<img class="align" src="resources/ttbthingy.png"><br><br>
+Now you may feel free to run fixkeybag with <b>-v2</b> option. In the end it will print your key 0x835. Save it somewhere. Downgraded keybags are saved to <span class="cli">/tmp/systembag.kb</span><br>
+<p class="cli">fixkeybag -v2</p>
+<img class="align" src="resources/fixkeybag_v2.png"><br><br>
+Copy it to <span class="cli">/mnt2/keybags</span>:
+<p class="cli">cp -a /tmp/systembag.kb /mnt2/keybags</p><br>
+
+Now you may feel free to unmount both partitions:
+<p class="cli">umount /mnt1 /mnt2</p><br>
+
+<h2>Patching bootchain</h2>
+<h3>iBSS</h3> 
+In iOS 4 <b>iBSS</b> was Stage 2 bootloader too. That means it had recovery shell, received commands, was able to boot kernel (along with ramdisk and DeviceTree surely). This is not what we need, so I recommend to take iOS 5+ <b>iBSS</b> instead and patch in the same way as described in <a class="blacklink" href="patchingbootchain.html">Part 5</a><br><br>
+
+<h3>iBEC</h3> 
+For some unobvious reason, Apple included OTA routines in iOS 4.2+, but only on bootloader level. This is delight for us<br><br> 
+
+First of all decrypt your <b>iBEC</b>:
+
+<p class="cli">xpwntool iBEC iBEC.dec -k key -iv iv</p>
+
+Unfortunately @iH8sn0w's <b>iBoot32Patcher</b> messes iOS 4 bootloaders, so we can't use it. But luckily there is another iBoot patcher — the one from <b>opensn0w</b> (and <b>iOS kexec tools</b>). It doesn't work for me on computer, but happily works right on device: 
+
+<p class="cli">ibsspatch iBEC.dec iBEC.prepatched</p>
+
+<img class="align" src="resources/ibec_patcher1.png">
+<center>* * *</center>
+<img class="align" src="resources/ibec_patcher2.png"><br><br>
+
+Transfer resulting file back to computer<br><br>
+<i><b>Important note:</b> patches made by <b>ibsspatch</b> have different nature than patches made by <b>iBoot32Patcher</b>. In <b>Part 5</b> I told that two Image3 tags (<span class="cli">TYPE</span> and <span class="cli">DATA</span>) are perfectly enough. But this doesn't apply to bootloaders patched by <b>ibsspatch</b> - every IMG3 file you use with them must have exactly same tag set this IMG3 originally has</i>
+<br><br>
+Replace boot-args <b>ibsspatch</b> wrote by <span class="cli">rd=disk0s3 -v</span>:<br>
+<img class="align" src="resources/ibec4_boot_args.png">
+<div class="desc">Replace unnecessary symbols by spaces. Don't touch null-termination</div>
+<h4>OTA-routines patches</h4>
+Make <b>boot-command=upgrade</b> and <b>auto-boot=true</b> patches in literaly same way you would make them for iOS 6 bootloader (described in <a class="blacklink" href="patchingbootchain.html">Part 5</a>)<br><br>
+
+<h4>boot-partition patch</h4>
+<b>upgrade</b> routines on early stages sets value of <span class="cli">boot-partition</span> iBoot variable to <span class="cli">2</span> (but doesn't save it to NVRAM though):<br><br>
+<img class="align" src="resources/boot-partition_set.png"><br>
+But what's for? This value is then read by function I call <span class="cli">mount_upgrade_hfs</span>. All it does is mount partition which number is set by <span class="cli">boot-partition</span> variable to <span class="cli">/boot</span>. Since partition number's count starts with <b>0</b>, <b>2</b> actually means 3rd partition<br><br>
+
+For some currently unknown reason, iBEC refuses to load any file from iOS 4 system partition. Happily loads anything from iOS 7 system partition though. That means we have to make it use first partition for <b>Upgrade</b> instead of third. Replace reference to <span class="cli">2</span> (yes, it's encoded as string) by reference to <span class="cli">0</span> string. You should know well ho to do it:<br><br>
+<img class="align" src="resources/0_string_patch.png"><br>
+Bootchain (kernelcache, DeviceTree) must be stored at first partition, obviously
+
+<h4>Skip ramdisk load</h4>
+OTA update process implies booting of ramdisk. But in our case, in case of dualboot we absolutely don't need it. Furthermore ramdisk loading slows down boot process, especially on old devices. This patch isn't really necessary. Using <a class="blacklink" href="http://armconverter.com/branchfinder/">Branch Finder</a> replace <span class="cli">CBZ R0, upgrade_load_ramdisk_</span>:<br><br>
+<img class="align" src="resources/ramdisk_unpatched.png"><br>
+...by <span class="cli">CBZ R0, upgrade_load_kernelcache_</span>:<br><br> 
+<img class="align" src="resources/ramdisk_patched.png"><br>
+<br>
+<h2>What you should and shouldn't do</h2>
+You should downgrade keybag and copy it before every boot of second OS. Especially if you changed your passcode. To avoid kernel patching which is needed to get key 0x835, you may just pass this key as third argument to <b>fixkeybag</b>:
+<p class="cli">fixkeybag -v2 85b0d63506ba0e164beed5abbd397cad</p>
+By the way, I'm going to add pre-boot scripting function to <b>Way Out</b> for automation of such processes<br><br>
+<b>NEVER</b> change passcode or erase contents on second system. Such operations will cause regeneration of keys in <b>Effaceable Storage</b> and as result awful death to your first system
+<br><br>
+<center><a href="https://nyansatan.github.io/dualboot/" class="menu"><b>Back to main page</b></a></center><br>
+
+</div>
+
+<footer>
+Nyan Satan, 2017<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+</footer>
+</body>
+</html>
