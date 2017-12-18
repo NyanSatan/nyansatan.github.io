@@ -16,7 +16,7 @@
 
 <div class="main">
 <h1>Patching bootchain</h1>
-Most difficult part of entire guide. We have to make iBSS automatically load iBEC from some point of memory, make iBEC mount third partition and take our previously decrypted boot components therefrom. Also, we should add special property to Device Tree to disable use of <i>Effaceable Storage</i>. This will fix literally every issue related with data-protection
+Most difficult part of entire guide. We have to make iBSS automatically load iBEC from some point of memory, make iBEC mount third partition and take our previously decrypted boot components therefrom. Also, we should add a special property to Device Tree to disable use of <i>Effaceable Storage</i>. This will fix literally every issue related to data-protection
 <h2>iBSS</h2>
 <i>iBSS patches are only necessary for iPhones and iPods. iPads may jump straight to iBEC without any issues, but iPhones and iPods will have disabled display in this case</i><br><br>
 
@@ -37,12 +37,12 @@ Preparations done, now patch it!
 <h3>Load address patch</h3>
 In <b>initialization</b> function, there's something like <span class="cli">MOVT.W R4, #0x4FE0</span>. It will immediately rush in your eyes, because hex value usually has orange color:<br><br>
 <img class="align" src="resources/loadaddr.png"><br>
-This value tells iBSS where it should find iBEC to jump to. In case of N90AP, iOS 6.1.3 it's <span class="cli">#0x4FE0</span> (so iBSS will look at 0x4FE00000), but may be different in bootloaders for other devices/versions. <b>multi_kloader</b> places second image at <b>0x7FD00000</b>, so we have to replace current instruction by <span class="cli">MOVT.W R4, #0x7FD0</span> Come to hex view and replace current hex representation of instruction by <span class="cli">C7 F6 D0 74</span>. Now it should look in such way:<br><br>
+This value tells iBSS where it should find iBEC to jump to. In case of N90AP, iOS 6.1.3 it's <span class="cli">#0x4FE0</span> (so iBSS will look at 0x4FE00000), but may be different in bootloaders for other devices/versions. <b>multi_kloader</b> places the second image at <b>0x7FD00000</b>, so we have to replace current instruction by <span class="cli">MOVT.W R4, #0x7FD0</span> Come to hex view and replace current hex representation of instruction by <span class="cli">C7 F6 D0 74</span>. Now it should look in such way:<br><br>
 <img class="align" src="resources/patchedloadaddr.png"><br>
 <h4>S5L8940-family notes</h4>
 But in case of A5-family devices, iBSS usually clears memory at <b>0x7FD00000</b>, so jump isn't performed, obviously. If you have device with Apple A5 SoC (no matter which revision, this applies to all of them), you have to replace this instruction with <span class="cli">MOVT.W R4, #0xBFD0</span> (<span class="cli">CB F6 D0 74</span> in hex):<br><br>
 <img class="align" src="resources/a5patchedloadaddr.png"><br>
-Since iBSS now will look to different point in memory, we also need different <b>multi_kloader</b> which places iBEC to this point in memory. <b>4smulti_kloader</b> is built-in to <b>dualbootstuff</b> and <b>Way Out</b>. The only difference of this multi_kloader comparing to original is that it places second image at <b>0xBFD00000</b> instead of <b>0x7FD00000</b><br><br> Thanks to @JonathanSeals for this trick and modified <b>multi_kloader</b>!<br>
+Since iBSS now will look to a different point in memory, we also need different <b>multi_kloader</b> which places iBEC to this point in memory. <b>4smulti_kloader</b> is built-in to <b>dualbootstuff</b> and <b>Way Out</b>. The only difference of this multi_kloader comparing to original is that it places second image at <b>0xBFD00000</b> instead of <b>0x7FD00000</b><br><br> Thanks to @JonathanSeals for this trick and modified <b>multi_kloader</b>!<br>
 
 <h4>S5L8920-family notes</h4>
 For S5L8920 SoC (used in iPhone 3GS) and S5L8922 (used in iPod touch 3) patch is different a bit. You have to replace this <span class="cli">MOVS R1, #0x3FF00000</span> by <span class="cli">MOVS R1, #0x6FD00000</span>:<br><br>
@@ -57,10 +57,10 @@ Correctly patched load address for S5L8920 should look in this way:<br><br>
 <h3>Disable usb_wait_for_image patch</h3>
 Now we have to disable iBSS'es USB routines. In order to do that we'll need to find the place where <b>usb_wait_for_image</b> function called and replace this call by <span class="cli">NOP</span>s<br><br>
 How to find this function? As you probably know, iDevice with running DFU-bootloader is usually recognized as USB device named <span class="cli">Apple Mobile Device (DFU Mode)</span>. It should be easy to determine where this string is loaded and after that find <b>usb_wait_for_image</b> root function call by following CODE XREFs<br><br>
-Search for <span class="cli">Apple Mobile</span> string in hex-editor. You'll find this string somewhere in the end of file:<br><br>
+Search for <span class="cli">Apple Mobile</span> string in hex-editor. You'll find this string somewhere at the end of file:<br><br>
 <img class="align" src="resources/applemobile.png">
 <div class="desc"> It's surely possible to search for this string right in <b>IDA</b>, but its string recognition routines do their work awfully bad sometimes, so in some cases you won't find what you need</div><br>
-Then search for address of found string (<span class="cli">CFAF</span> in this case):<br><br>
+Then search for the address of found string (<span class="cli">CFAF</span> in this case):<br><br>
 <img class="align" src="resources/applemobile2.png"><br>
 This time it'll find 2 <span class="cli">LDR R0, =0x8400CFAF</span> instructions. Go to one of them and follow <i>CODE XREFs</i> until you back to <b>initialization</b> function<br><br>
 Note that <b>IDA</b> points cursor to place when function called when you follow <i>CODE XREFs</i><br><br>
@@ -77,7 +77,7 @@ We found it! <span class="cli">sub_8400993C</span> is <b>usb_wait_for_image</b> 
 <h4>What if you haven't found LDRs</h4>
 As I said above, unfortunately, string recognizer in <b>IDA</b> works extremely bad. That's why you couldn't find your strings sometimes. For example, here is how <span class="cli">Apple Mobile Device (DFU Mode)</span> string was recognized in some bootloader:<br><br>
 <img class="align" src="resources/applemobilesliced.png"><br>
-First part of the string is just byte mess. You shouldn't be surprised string wasn't found<br><br>
+The first part of the string is just a byte mess. You shouldn't be surprised string wasn't found<br><br>
 We use external hex-editor to find string's position, so problems will go away, LDRs will just look like this: <span class="cli">LDR R0, =0x8400CFAF</span>, right? Sometimes it's wrong:<br><br>
 <img class="align" src="resources/pattern.png"><br>
 Why? That's why:<br><br>
@@ -126,15 +126,15 @@ Rebase program to value at <b>ROM:0x00000020 minus 0x40</b> (0x5FF00040 - 0x40 =
 
 <h3>boot-command=upgrade patch</h3>
 iBoot Stage 2 (flashable iBoot and iBEC) has set of local hardcoded variables (<span class="cli">boot-command</span>, <span class="cli">build-style</span>, <span class="cli">loadaddr</span>, <span class="cli">bootdelay</span>, etc.), but if same variable exists in NVRAM, NVRAM's value will be used instead of hardcoded<br><br>
-As mentioned in previous part, we'll use OTA routines to untether dualboot. Natively iOS sets <span class="cli">upgrade</span> string to <span class="cli">boot-command</span> NVRAM variable and then reboots. After reboot iBoot detect this variable, mounts third partition (also known as <b>upgrade</b> partition), grabs APTicket and iBEC and then loads them. When iBEC is initializing, it checks boot-command too, and if it equals to <span class="cli">upgrade</span> iBEC mounts upgrade partition, grabs APTicket, Apple logo (it never works originally though, but we'll fix it), DeviceTree, ramdisk, kernel cache and boot them all. OTA update begins<br><br>
+As mentioned in previous part, we'll use OTA routines to untether dualboot. Natively iOS sets <span class="cli">upgrade</span> string to <span class="cli">boot-command</span> NVRAM variable and then reboots. After reboot iBoot detect this variable, mounts the third partition (also known as <b>upgrade</b> partition), grabs APTicket and iBEC and then loads them. When iBEC is initializing, it checks boot-command too, and if it equals to <span class="cli">upgrade</span> iBEC mounts upgrade partition, grabs APTicket, Apple logo (it never works originally though, but we'll fix it), DeviceTree, ramdisk, kernel cache and boot them all. OTA update begins<br><br>
 Setting this variable manually in NVRAM is bad idea. First OS'es iBoot will detect it too, signature checks will obviously fail and as result device will stuck in Recovery mode. It's not being possible to delete this variable from iBoot shell, so you'll be forced to restore<br><br>
 Instead of setting it to NVRAM, let's re-hardcode original <span class="cli">boot-command</span>'s value (originally, it's usually <span class="cli">fsboot</span>) to <span class="cli">upgrade</span>. NVRAM won't be touched, so first OS'es iBoot will stay safe<br><br>
-First of all, we need find two strings and write down their adresses. <span class="cli">fsboot</span>:<br>
+First of all, we need find two strings and write down their addresses. <span class="cli">fsboot</span>:<br>
 <img class="align" src="resources/fsboot.png">
 ...and <span class="cli">upgrade</span>:<br>
 <img class="align" src="resources/upgrade.png">
-<b>Important note</b>: you'll get 2 occurrences, but you need only the one with <span class="cli">00</span> around it, other one is part of <span class="cli">failed to mount upgrade partition</span> string<br><br>
-Now search for address of first string (3553A in this case) in <b>IDA</b>:<br><br>
+<b>Important note</b>: you'll get 2 occurrences, but you need only the one with <span class="cli">00</span> around it, the other one is part of <span class="cli">failed to mount upgrade partition</span> string<br><br>
+Now search for the address of first string (3553A in this case) in <b>IDA</b>:<br><br>
 <img class="align" src="resources/upgrade_patch1.png"><br>
 The only occurrence will be found in function which sets local iBoot variables. All of these addresses in <span class="cli">LDR</span> instructions point to strings with variable's names and their values, but their recognition in <b>IDA</b> never works properly<br><br>
 We need to replace this <span class="cli">LDR R1, =address_to_upgrade_string</span> by <span class="cli">LDR R1, =address_to_upgrade_string</span>. To do that, go to string reference section below function:<br><br>
@@ -146,7 +146,7 @@ Highlighted value (<span class="cli">3A 55 F3 5F</span> in this case) is little-
 <img class="align" src="resources/hex_string2.png"><br>
 Most likely you'll see raw address instead of <span class="cli">upgrade</span>:<br><br>
 <img class="align" src="resources/broken_string2.png"><br>
-Go to this address and you'll get that's because <b>IDA</b> often recognize strings as instructions or raw bytes: <br><br>
+Go to this address and you'll get that's because <b>IDA</b> often recognizes strings as instructions or raw bytes: <br><br>
 <img class="align" src="resources/broken_strings.png"><br>
 You may undefine them manually though. You'll understand you did this patch well if DATA XREF appeared in the right of <span class="cli">upgrade</span> string:<br><br>
 <img class="align" src="resources/undefined_strings.png"><br>
@@ -170,7 +170,7 @@ Most complicated patch. For unobvious reason, Apple logo appearance is broken on
 <div class="separator"></div><br>
 <img class="align" src="resources/devicetree_load.png"><br>
 <div class="desc">Shortly after logo's load, Device Tree loads too and replaces logo's image in memory. So we must do magic before that</div><br></li>
-<li>Obviously that's not enough to get logo appear. As you know from tethered boot proccess, it's also needed to send <span class="cli">setpicture</span> command and change background color using <span class="cli">bgcolor R G B</span></li><br>
+<li>Obviously that's not enough to get logo appear. As you know from tethered boot process, it's also needed to send <span class="cli">setpicture</span> command and change background color using <span class="cli">bgcolor R G B</span></li><br>
 <li>Can we call <span class="cli">setpicture</span> and <span class="cli">bgcolor</span> manually in assembly? Sure!</li>
 </ol>
 <a target="_blank" href="resources/set_applelogo.png"><img class="align" src="resources/set_applelogo.png"></a>
