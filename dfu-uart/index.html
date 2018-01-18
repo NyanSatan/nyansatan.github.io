@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
+
+<title>Enabling debug-uarts on DFU-like iBoot</title>
+
+</head>
+
+<body>
+
+<div class="main">
+<h1>Enabling debug-uarts on DFU-like iBoot</h1>
+
+<span class="cli">debug-uarts</span> is an iBoot variable which sets the UART mode. If it's set to <b>3</b>, iBoot Stage 2 (iBEC, flashable iBoot and iBSS before iOS 5) will send its' log over the serial interface, which may be useful for research purposes:<br><br>
+
+<a href="resources/iboot_uart.png"><img class="align" src="resources/iboot_uart.png"></a>
+<div class="desc" style="margin-top: -10px">Tap to image for full size</div><br><br>
+
+However, DFU-like bootloaders (SecureROM, WTF, LLB and iBSS after iOS 5) don't access NVRAM and as result won’t give you any output over serial, but it’s still possible to enable UART on LLB and iBSS by manually patching. Not possible on SecureROM for obvious reasons, not sure about WTF<br><br>
+
+<h2>How iBoot Stage 2 sets UART mode</h2>
+The place in the image where it happens is pretty easy to find — just search for the <span class="cli">debug-uarts</span> string:<br><br>
+<img class="align" src="resources/debug-uarts_ibec_disassm.png">
+<div class="desc">iBEC for n41ap, iBoot-1537.9.55~11</div><br>
+
+First it loads the <span class="cli">debug-uarts</span> variable from NVRAM:
+<p class="cli">int uart_mode = get_iboot_int_variable("debug-uarts", 0)</p> 
+Then it calls this function which sets the UART configuration:
+<p class="cli">set_debug_uarts_mode(uart_mode)</p>
+<b>Note</b>: <span class="cli">get_iboot_int_variable</span>, <span class="cli">uart_mode</span> and <span class="cli">set_debug_uarts_mode</span> aren't official Apple symbols obviously<br><br><br>
+
+<span class="cli">set_debug_uarts_mode</span> disassembly:<br>
+<img class="align" style="margin-top: 10px" src="resources/set_debug_uarts_mode.png"><br>
+
+<h2>How to set UART mode on iBoot Stage 1</h2>
+Find the same function (<span class="cli">set_debug_uarts_mode</span>) in your DFU-bootloader by searching the <span class="cli">ORRS R0, R2</span> instruction for example:<br>
+<img class="align" style="margin-top: 10px" src="resources/set_debug_uarts_mode_ibss.png">
+<div class="desc">iBSS for n41ap, iBoot-1537.9.55~11</div><br>
+
+Follow its' <b style="color: green">CODE XREF</b> to find the place where this function is called:<br>
+<img class="align" style="margin-top: 10px" src="resources/set_debug_uarts_mode_call.png"><br>
+...and replace this instruction (<span class="cli">LDRB R0, [R4]</span> in this case) with  <span class="cli">MOVS R0, #3</span> (<span class="cli">03 20</span> in hex):<br>
+<img class="align" style="margin-top: 10px" src="resources/set_debug_uarts_mode_arg_patched.png"><br>
+
+Now your DFU bootloader should send its' log over serial:<br>
+<a href="resources/ibss_uart.png"><img class="align" style="margin-top: 10px" src="resources/ibss_uart.png"></a>
+<div class="desc" style="margin-top: -10px">Yes, iBSS doesn't talk much<br>Tap to image for full size</div><br>
+
+
+<h2>How to get additional debug messages on iBoot Stage 2</h2>
+As you may notice, in iBoot Stage 2 <span class="cli">set_debug_uarts_mode</span> is called twice. Here:<br>
+<img class="align" style="margin-top: 10px" src="resources/debug-uarts_ibec_disassm.png"><br>
+...and here, just like in DFU bootloaders:<br>
+<img class="align" style="margin-top: 10px" src="resources/set_debug_uarts_mode_call2.png"><br>
+This code is responsible for setting the UART mode before NVRAM is initialized. Replace this instruction (<span class="cli">LDRB R0, [R4]</span> in this case) with <span class="cli">MOVS R0, #3</span> (<span class="cli">03 20</span> in hex):<br>
+<img class="align" style="margin-top: 10px" src="resources/set_debug_uarts_mode_arg_patched_ibec.png"><br>
+iBoot Stage 2 should now send its' log over serial before NVRAM gets initialized:<br>
+<a href="resources/ibec_additional_debug_info.png"><img class="align" style="margin-top: 10px" src="resources/ibec_additional_debug_info.png"></a>
+<div class="desc" style="margin-top: -10px">iBEC for n78ap, iBoot-1537.9.55~11<br>Tap to image for full size</div><br>
+
+<h2>Notes</h2>
+<ul>
+  <li>I only tested this technique on <b>iPhone5,1</b> and <b>iPod5,1</b> with <b>iBoot-1537.9.55~11</b> (iBSS/iBEC). But the same code routines were also found by me in <b>iBoot-1072.61~2</b>, <b>iBoot-2817.60.2~2</b> and <b>iBoot-3406.60.10~70</b>, so this technique should work on most iOS bootloaders</li><br>
+  <li>Since we're playing with very low-level stuff, it may be potentially dangerous for your hardware, thus I have to say — <b><i>information given here is given for educational purposes only and I'm not responsible for any damage it may cause</i></b>. Although I'm 100% sure that nothing bad will happen, I still have to warn you</li>
+</ul>
+
+<h2>Credits</h2>
+<ul>
+  <li><b>@JonathanSeals</b> — for idea of using this patch for iBoot Stage 2 in order to enable UART before NVRAM initialization and grammar corrections</li>
+</ul>
+
+
+</div>
+
+<footer>
+Nyan Satan, 2018<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+
+</footer>
+
+
+</body>
+</html>
