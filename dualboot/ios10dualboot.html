@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
+
+<title>iOS Dualboot - Few notes about iOS 10 dualboot</title>
+
+</head>
+
+<body>
+
+<div class="main">
+<h1>Few notes about iOS 10 dualboot</h1>
+
+This isn't comprehensive guide, just few notes about problems you might run into if you're trying to dualboot iOS 10 manually and their solving. I haven't dug in it deep, so there must be more elegant solutions
+
+<h2>Bootchain</h2>
+<h3>boot-command=upgrade</h3>
+In iOS 10 bootloaders, <span class="cli">upgrade</span> boot-command's behaviour is slightly changed. For some unobvious reason iBEC (iBEC and iBoot are same thing now, by the way) refuses to mount upgrade partition. Well, at least it did in my case. Also now it doesn't spawn shell after upgrade failure, but writes failure reports to NVRAM and then reboots instead<br><br>
+
+<h4>How upgrade partition is mounted in iOS 6</h4>
+Let's look how upgrade partition was mounted in old iOS 6 bootloader:<br><br>
+<img class="align" src="resources/ios6_mount_upgrade.png"><br>
+First it sets <span class="cli">boot-partition</span> variable to <span class="cli">2</span>, without syncing with NVRAM though:<br>
+<p class="cli">set_iboot_variable("boot-partition", "2", 0);</p>
+Then it calls special function (<span class="cli">mount_hfs_with_iboot_vars()</span>) which mounts HFS with index set in <span class="cli">boot-partition</span> variable from block device which name is set in <span class="cli">boot-device</span> variable. Its (partial) disassembly:<br><br>
+<img class="align" src="resources/mount_hfs_with_iboot_vars.png"><br>
+If partition was mounted succesfully, iBEC loads APTicket, Apple logo, Device Tree and so on<br><br>
+
+<h4>How upgrade partition is mounted in iOS 10</h4>
+In iBoot Stage 2 from iOS 10 <span class="cli">mount_hfs_with_iboot_vars()</span> function was replaced by some new one:<br><br>
+<img class="align" src="resources/new_mount_upgrade_hfs.png"><br>
+As was mentioned above, for some unobvious reason it doesn't work when you set up everything manually. Luckily <span class="cli">mount_hfs_with_iboot_vars()</span> is still here (it's used to load <span class="cli">diags</span> image from filesystem, for example):<br><br>
+<img class="align" src="resources/mount_hfs_with_iboot_vars_ios10.png"><br>
+Patch upgrade routines to make it use <span class="cli">mount_hfs_with_iboot_vars()</span> as it has always been in iOS 4, 5, 6 and 7 (not sure about 8):<br><br>
+<img class="align" src="resources/ios10_mount_upgrade_patched.png"><br>
+Now upgrade partition should be mounted just fine<br><br>
+
+
+<h3>Apple logo patch</h3>
+It's not needed anymore. It's hard to believe, but iOS 10 bootloaders are able to load and show it to you without any patches
+
+
+<h3>no-effaceable-storage</h3>
+How <b>no-effaceable-storage</b> works in iOS 6:
+<ul>
+<li><b>BAG1</b> locker is ignored. System keybag is stored unencrypted as result</li><br>
+<li><b>Dkey</b> is ignored as well. Files with <b>NSProtectionNone</b> protection class are encrypted with static fake key. Yes, that <span class="cli">AppleKeyStore: disabling use of effaceable storage, using fake key</span> message in kernel log refers to <b>Dkey</b>; if your Data volume has no <span class="cli">protect</span> flag, this message won't be shown</li><br>
+<li><b>LwVM</b> locker seems to be not ignored. Data partition for second system may have encryption flag in partition table, but still successfully read by second system</li><br>
+</ul>
+But in iOS 10 <b>LwVM</b> locker is ignored:<br><br>
+<img class="align" src="resources/insecure_lwvm.png"><br>
+...and fixed key used instead. You can try deal with it by removing encryption flag from partition entry, but I simply left <b>Effaceable Storage</b> enabled. In this case you have to copy system keybag from first system to second one<br><br>
+
+<h2>Activation</h2>
+Apple disallows activation on iOS versions lower than 10.0 if your device was ever activated on iOS 10.0 or newer. Although today (20.01.18) this policy seems to be cancelled, I still don't recommend to take a risk. Instead you should copy your activation record from first system to second one<br><br>
+
+Activation is just plist called <span class="cli">activation_record.plist</span> if your device has got baseband or <span class="cli">pod_record.plist</span> if not. On old devices (e.g. iPhone 4 or 3GS) it was called <span class="cli">wildcard_record.plist</span><br>
+<ul>
+<li>On iOS 6 and 7 it's stored at <span class="cli">/private/var/root/Library/Lockdown/activation_records</span></li><br>
+<li>On iOS 9 it's stored at <span class="cli">/private/var/mobile/Library/mad/activation_records</span></li><br>
+</ul>
+Not sure about other versions. Although iOS 10 stores its activation record plist somewhere else, it still can read it from <span class="cli">/private/var/root/Library/Lockdown/activation_records</span><br><br>
+
+<b>Important note</b>: in order to prevent reactivation add <span class="cli">albert.apple.com</span> to <span class="cli">/etc/hosts</span><br><br>
+
+Also don't try to remove setup assistant application, this will make your device stuck with Apple logo and progress line on display forever<br><br>
+
+
+<h2>Data volume</h2>
+If you set <span class="cli">protect</span> flag to HFS volume and it has ever been mounted on iOS 9+, this volume won't be mountable on iOS 8 and lower. Don't forget about it and copy all the data you want (keybag, activation records, something else maybe) before first boot of iOS 10<br><br>
+
+Also don't forget to copy <span class="cli">/private/var/*</span> directory structure to iOS 10's data volume, it's important<br><br>
+
+<h2>What you should never do on dualbooted iOS 10</h2>
+Never do anything related to data-protection — changing passcode, obliteration and probably backups. These actions lead to wipe of keys in Effaceable Storage, that would also affect your first system. As result, you won't be able to boot it and will be forced to restore<br><br>
+
+<h2>Known issues</h2>
+For some unobvious reason, applications signed with developer certificate (e.g. installed through Xcode or Cydia Impactor) can't be installed<br><br>
+
+
+</div>
+
+<footer>
+Nyan Satan, 2018<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+</footer>
+
+
+</body>
+</html>
