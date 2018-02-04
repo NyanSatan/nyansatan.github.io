@@ -30,23 +30,23 @@ The place in the image where it happens is pretty easy to find — just search f
 <div class="desc">iBEC for n41ap, iBoot-1537.9.55~11</div><br>
 
 First it loads the <span class="cli">debug-uarts</span> variable from NVRAM:
-<p class="cli">int uart_mode = get_iboot_int_variable("debug-uarts", 0)</p> 
+<p class="cli">env_get_uint("debug-uarts", 0)</p> 
 Then it calls this function which sets the UART configuration:
-<p class="cli">set_debug_uarts_mode(uart_mode)</p>
-<b>Note</b>: <span class="cli">get_iboot_int_variable</span>, <span class="cli">uart_mode</span> and <span class="cli">set_debug_uarts_mode</span> aren't official Apple symbols obviously<br><br><br>
+<p class="cli">debug_enable_uarts(env_get_uint("debug-uarts", 0))</p>
+<br>
 
-<span class="cli">set_debug_uarts_mode</span> disassembly:<br>
-<img class="align" style="margin-top: 10px" src="resources/set_debug_uarts_mode.png"><br>
+<span class="cli">debug_enable_uarts</span> disassembly:<br>
+<img class="align" style="margin-top: 10px" src="resources/debug_enable_uarts.png"><br>
 
 <h2>How to set UART mode on iBoot Stage 1</h2>
-Find the same function (<span class="cli">set_debug_uarts_mode</span>) in your DFU-bootloader by searching the <span class="cli">ORRS R0, R2</span> instruction for example:<br>
-<img class="align" style="margin-top: 10px" src="resources/set_debug_uarts_mode_ibss.png">
+Find the same function (<span class="cli">debug_enable_uarts</span>) in your DFU-bootloader by searching the <span class="cli">ORRS R0, R2</span> instruction for example:<br>
+<img class="align" style="margin-top: 10px" src="resources/debug_enable_uarts_ibss.png">
 <div class="desc">iBSS for n41ap, iBoot-1537.9.55~11</div><br>
 
 Follow its' <b style="color: green">CODE XREF</b> to find the place where this function is called:<br>
-<img class="align" style="margin-top: 10px" src="resources/set_debug_uarts_mode_call.png"><br>
+<img class="align" style="margin-top: 10px" src="resources/debug_enable_uarts_call.png"><br>
 ...and replace this instruction (<span class="cli">LDRB R0, [R4]</span> in this case) with  <span class="cli">MOVS R0, #3</span> (<span class="cli">03 20</span> in hex):<br>
-<img class="align" style="margin-top: 10px" src="resources/set_debug_uarts_mode_arg_patched.png"><br>
+<img class="align" style="margin-top: 10px" src="resources/debug_enable_uarts_arg_patched.png"><br>
 
 Now your DFU bootloader should send its' log over serial:<br>
 <a href="resources/ibss_uart.png"><img class="align" style="margin-top: 10px" src="resources/ibss_uart.png"></a>
@@ -54,12 +54,12 @@ Now your DFU bootloader should send its' log over serial:<br>
 
 
 <h2>How to get additional debug messages on iBoot Stage 2</h2>
-As you may notice, in iBoot Stage 2 <span class="cli">set_debug_uarts_mode</span> is called twice. Here:<br>
+As you may notice, in iBoot Stage 2 <span class="cli">debug_enable_uarts</span> is called twice. Here:<br>
 <img class="align" style="margin-top: 10px" src="resources/debug-uarts_ibec_disassm.png"><br>
 ...and here, just like in DFU bootloaders:<br>
-<img class="align" style="margin-top: 10px" src="resources/set_debug_uarts_mode_call2.png"><br>
+<img class="align" style="margin-top: 10px" src="resources/debug_enable_uarts_call2.png"><br>
 This code is responsible for setting the UART mode before NVRAM is initialized. Replace this instruction (<span class="cli">LDRB R0, [R4]</span> in this case) with <span class="cli">MOVS R0, #3</span> (<span class="cli">03 20</span> in hex):<br>
-<img class="align" style="margin-top: 10px" src="resources/set_debug_uarts_mode_arg_patched_ibec.png"><br>
+<img class="align" style="margin-top: 10px" src="resources/debug_enable_uarts_arg_patched_ibec.png"><br>
 iBoot Stage 2 should now send its' log over serial before NVRAM gets initialized:<br>
 <a href="resources/ibec_additional_debug_info.png"><img class="align" style="margin-top: 10px" src="resources/ibec_additional_debug_info.png"></a>
 <div class="desc" style="margin-top: -10px">iBEC for n78ap, iBoot-1537.9.55~11<br>Tap to image for full size</div><br>
