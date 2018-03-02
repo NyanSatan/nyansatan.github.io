@@ -35,7 +35,7 @@ All these strings are referred in <span class="cli">sub_DC840</span>:<br><br>
 <img src="resources/ramrod_subroutine.png" class="align"><br><br>
 ...which is subroutine for <span class="cli">ramrod_display_set_progress</span> function:<br><br>
 <img src="resources/ramrod_display_set_progress.png" class="align"><br><br>
-To achieve our target we must disable all the calls of this function. It's called in <span class="cli">start</span>:<br><br>
+To achieve our goal we must disable all calls of this function. It's called in <span class="cli">start</span>:<br><br>
 <img src="resources/ramrod_display_set_progress_call1.png" class="align"><br><br>
 Replace this <span class="cli">BL</span> by 2 <span class="cli">NOP</span>s (<span class="cli">00 BF</span> in hex):<br><br>
 <img src="resources/ramrod_display_set_progress_call1_patched.png" class="align"><br><br>
@@ -46,7 +46,7 @@ Replace <span class="cli">POP.W {R4-R7, LR}</span> by <span class="cli">POP {R4-
 <img src="resources/ramrod_display_set_progress_call2_patched.png" class="align"><br><br>
 As result this function ends and returns where it was called, which prevents <span class="cli">ramrod_display_set_progress</span> from being executed<br><br>
 
-Apply changes to binary and fix its code signing blob using <b>ldid</b>. Obviously your iBEC must pass <span class="cli">-v</span> boot-arg to kernel to get it working, leave alone other customizations you need to make with IPSW to make booting modified ramdisk possible<br><br>
+Apply changes to binary and fix its code signing blob using <b>ldid</b>. Obviously your iBEC must pass <span class="cli">-v</span> boot-arg to kernel to get it working, let alone other customizations you need to make with IPSW to make booting of modified ramdisk possible<br><br>
 </div>
 
 <footer>
