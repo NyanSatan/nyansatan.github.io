@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
+
+<title>iOS restore in verbose mode</title>
+
+</head>
+
+
+<body>
+
+<div class="main">
+
+<h1>iOS restore in verbose mode</h1>
+
+<b>restored_external</b> (a daemon on iOS restore ramdisk which controls restore process) prints a lot of useful debug messages. In old times (around iPhone OS 3) it always saved its log to root filesystem, but now it doesn't (must be possible to change this behaviour by patching though)<br><br>
+
+Log is only accessible through serial interface (just make sure <span class="cli">debug=0x14e</span> and <span class="cli">serial=3</span> boot-args are set) or in programs like <b>idevicerestore</b> in case restore failed. However it's possible to make these debug messages appear in verbose log, thanks to special patches:
+<br><br>
+<img src="resources/result.jpg" class="align"><br><br>
+
+<div class="separator"></div><br>
+<b>Importnant note</b>: this technique was only tested by me on iOS 6 running on iPhone 3GS<br><br>
+<div class="separator"></div><br><br>
+
+The patches imply disabling of routines in <b>restored_external</b> which set images on a display. First of all let's find something related to the display routines in a string pool. For example by searching for <span class="cli">applelogo.png</span>, this file is used by restored_external to show you Apple logo:<br><br>
+<img src="resources/display_cstrings.png" class="align"><br><br>
+All these strings are referred in <span class="cli">sub_DC840</span>:<br><br>
+<img src="resources/ramrod_subroutine.png" class="align"><br><br>
+...which is subroutine for <span class="cli">ramrod_display_set_progress</span> function:<br><br>
+<img src="resources/ramrod_display_set_progress.png" class="align"><br><br>
+To achieve our target we must disable all the calls of this function. It's called in <span class="cli">start</span>:<br><br>
+<img src="resources/ramrod_display_set_progress_call1.png" class="align"><br><br>
+Replace this <span class="cli">BL</span> by 2 <span class="cli">NOP</span>s (<span class="cli">00 BF</span> in hex):<br><br>
+<img src="resources/ramrod_display_set_progress_call1_patched.png" class="align"><br><br>
+
+Also it's called here:<br><br>
+<img src="resources/ramrod_display_set_progress_call2.png" class="align"><br><br>
+Replace <span class="cli">POP.W {R4-R7, LR}</span> by <span class="cli">POP {R4-R7, PC}</span> (<span class="cli">F0 BD</span> in hex) and <span class="cli">NOP</span> (since <span class="cli">POP.W {R4-R7, LR}</span> is 4 bytes of length, but <span class="cli">POP {R4-R7, PC}</span> is 2 bytes):<br><br>
+<img src="resources/ramrod_display_set_progress_call2_patched.png" class="align"><br><br>
+As result this function ends and returns where it was called, which prevents <span class="cli">ramrod_display_set_progress</span> from being executed<br><br>
+
+Apply changes to binary and fix its code signing blob using <b>ldid</b>. Obviously your iBEC must pass <span class="cli">-v</span> boot-arg to kernel to get it working, leave alone other customizations you need to make with IPSW to make booting modified ramdisk possible<br><br>
+</div>
+
+<footer>
+Nyan Satan, 2018<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+
+</footer>
+
+
+</body>
+</html>
