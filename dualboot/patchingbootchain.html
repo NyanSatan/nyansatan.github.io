@@ -137,7 +137,7 @@ First of all, we need find two strings and write down their addresses. <span cla
 Now search for the address of first string (3553A in this case) in <b>IDA</b>:<br><br>
 <img class="align" src="resources/upgrade_patch1.png"><br>
 The only occurrence will be found in function which sets local iBoot variables. All of these addresses in <span class="cli">LDR</span> instructions point to strings with variable's names and their values, but their recognition in <b>IDA</b> never works properly<br><br>
-We need to replace this <span class="cli">LDR R1, =address_to_upgrade_string</span> by <span class="cli">LDR R1, =address_to_upgrade_string</span>. To do that, go to string reference section below function:<br><br>
+We need to replace this <span class="cli">LDR R1, =address_to_fsboot_string</span> by <span class="cli">LDR R1, =address_to_upgrade_string</span>. To do that, go to string reference section below function:<br><br>
 <img class="align" src="resources/strings1.png"><br>
 Click to address of <span class="cli">fsboot</span> (<span class="cli">0x5FF3553A</span> in this case) and switch to hex-view:<br><br>
 <img class="align" src="resources/hex_strings1.png"><br>
