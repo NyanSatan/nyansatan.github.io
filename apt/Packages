@@ -1,14 +1,14 @@
 Package: com.nyansatan.WayOut
-Version: 1.6.1-1G23
+Version: 1.6.1-1G23a
 Architecture: iphoneos-arm
 Maintainer: Nyan Satan
 Installed-Size: 8092
 Depends: firmware (>= 5.0)
 Filename: ./deb_files/WayOut.deb
-Size: 7883554
-MD5sum: ec88574ca294373f708e5b1e51225d0e
-SHA1: 61ea750c7e7e50e93c639c815751b92a012ed5e3
-SHA256: 9fdbde88f01c54cb9cc00f26af6a8cc186ef8211f3ef6d66d13e3e18cfd79930
+Size: 7883656
+MD5sum: fc21683ee613a66be5ef0eddd9078ea5
+SHA1: e7b5c0be280d49fe109c31e6d318b141633da39e
+SHA256: 74a192c584619dfc1b791a790039fb8fc32851bbd6ffbe749132822a9696e331
 Section: System
 Description: Way Out - GUI for kloader in the spirit of classical Setup.app. Developed by @nyan_satan. Thanks to: @winocm, @xerub, @JonathanSeals, @axi0mX
 Author: @nyan_satan
@@ -16,15 +16,15 @@ Icon: file:///Applications/WayOut.app/icon7.png
 Name: Way Out
 
 Package: com.nyansatan.dualbootstuff
-Version: 1.0.5
+Version: 1.0.6
 Architecture: iphoneos-arm
 Maintainer: Nyan Satan
-Installed-Size: 2694
+Installed-Size: 2749
 Filename: ./deb_files/dualbootstuff.deb
-Size: 1313004
-MD5sum: d2d9540b65244fa4cd9c411391028e58
-SHA1: 630f2477f29507688b688d0ea956bc52378432d3
-SHA256: 639e9e8fbaa82fe1fd80293e7e351c0d56f4eb7d17eb0606d22ef64a34f4eba7
+Size: 1320622
+MD5sum: cd17d40d0d77829e31e46de90ed9032f
+SHA1: ac1adc170e65bbaeffff7c794cbc187d2e367525
+SHA256: afc4c5f1bb090fb4015ab9a0db928970a41044575dd8153e485eda7ccb18e260
 Section: System
 Description: Package of tools for iOS dualbooting. It contains hfs_resize, gptfdisk, ASR (from iOS 4.0, 5.0.1, 6.1.3), kloader (including @axi0mX's fork), multi_kloader (including modified one for A5), ibsspatch, attach, detach, ttbthingy, NoMoreSIGABRT, fixkeybag, TwistedMind2 and some /etc files
 Author: @danzatt, @winocm, @xerub, @JonathanSeals, @axi0mX, @Apple, @comex, Roderick W. Smith, people behind iphone-dataprotection project, @nyan_satan

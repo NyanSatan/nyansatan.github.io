@@ -75,7 +75,9 @@ Remove this array (it's usually third) from <span class="cli">/mnt1/Applications
 <b>Important note</b>: I highly recommend to test <b><i>no-effaceable-storage</i></b> patch first and only after install it. If you'll fail with this patch, fixkeybag will destroy your first iOS, so you will be forced to restore. We'll talk about patch and its purpose in next part<br><br>
 <i><b>fixkeybag</b> - tiny program which generate new system keybags by invoking function from <b>MobileKeyBag.framework</b>, just like native restore daemon does. Without system keybag iOS won't start. To learn more about system keybags appointment and whole iOS data-protection model read <a href="http://esec-lab.sogeti.com/static/publications/11-hitbamsterdam-iphonedataprotection.pdf">this</a></i><br><br>
 Download <b>fixkeybag</b> from <a href="https://github.com/NyanSatan/fixkeybag">GitHub</a>, build it and copy to <span class="cli">/mnt1</span>. Or simply copy it from <b>dualbootstuff</b> package:
-<p class="cli">cp -a /usr/share/dualbootstuff/fixkeybag /mnt1</p>
+<p class="cli">cp -a /usr/share/dualbootstuff/fixkeybag_legacy /mnt1<br>
+mv /mnt1/fixkeybag_legacy /mnt1/fixkeybag
+</p>
 Don't forget about UNIX permissions, they should be 755<br><br>
 Then create <span class="cli">/mnt1/private/etc/launchd.conf</span>:
 <p class="cli">nano /mnt1/private/etc/launchd.conf</p>
