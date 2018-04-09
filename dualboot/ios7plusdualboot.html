@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
+
+<title>iOS Dualboot - iOS 7+ dualboot</title>
+
+</head>
+
+<body>
+
+<div class="main">
+<h1>iOS 7+ dualboot</h1>
+
+This article describes <i>differences</i> between dualbooting iOS 6 (main guide is about it) and newer Apple’ mobile OSes — iOS 7, 8, 9 and early versions of iOS 10 (up to 10.2.1, iOS 10.3.x is for sure possible to dualboot as well, but much harder. <b>AMFI</b>’ boot arguments are removed since then, therefore we’d have to patch a kernel itself). Please note I haven't tested these dualbooted systems much
+
+<h2>Preparing RootFS</h2>
+Absolutely same process as for iOS 6, with exception that iOS 10 root filesystem images are unencrypted by design and you don’t need to decrypt it
+
+<h2>Partitioning</h2>
+Process is almost same as for iOS 6. But you mustn’t set 48th bit of attributes of fourth partition (Data for second system). It enables <b>LwVM</b> partition encryption, which we don’t want because since iOS 7 the kext now uses fixed fake key to decrypt a partition if <b>no-effaceable-storage</b> property was met in <span class="cli">IODeviceTree:/defaults</span>, instead of actual key from <b>LwVM</b> locker in <b>Effaceable Storage</b>:<br><br>
+
+<img class="align" src="resources/insecure_lwvm.png"><br>
+
+49th bit doesn’t appear to do something important, so you can either set it or do not. I usually don’t 
+
+
+<h2>Modifying filesystems</h2>
+Act as if you have iOS 9+ base OS even if you don’t<br><br>
+
+For iOS 9 and 10 it’s very important to remove <span class="cli">/mnt2/mobile/Library/Preferences/.GlobalPreferences.plist</span>:<br>
+
+<p class=cli>rm -rf /mnt2/mobile/Library/Preferences/.GlobalPreferences.plist</p>
+
+On iOS 8 and older this file seems to be regenerated if it’s found not valid. On newer iOS on the other hand it is not. As a result system fails to set language and region, which leads to a lot of unexpected bugs<br><br>
+
+Also remove <span class="cli">com.apple.ProxiedCrashCopier.plist</span>:<br>
+<p class=cli>rm -rf /mnt2/mobile/Library/Preferences/com.apple.ProxiedCrashCopier.plist</p>
+
+<h3>Freeing additional space</h3>
+
+On iOS 6, 7 and 8 there’s about 150 MB of PreinstalledAssets at <span class="cli">/private/var</span>. When you move it from System to Data partition, we free that amount of space on System. There’s no such thing since iOS 9, so to free space we have to do another thing — remove OTA stuff (ramdisk, baseband firmware, boot logos, etc.) 
+<p class=cli>rm -rf /mnt1/usr/standalone/update</p>
+
+On iOS 9 freed space might be not enough, use smaller ramdisk (from iOS 6, for example) or patch iBEC in the way it will skip ramdisk loading
+
+<h3>Installing fixkeybag</h3>
+
+<span class="cli">launchd.conf</span> isn’t a thing since iOS 7, so we need another trick to execute <b>fixkeybag</b> at first boot<br><br>
+Easiest and universal method is to replace original keybag daemon (handles system keybags) by fixkeybag. Copy fixkeybag to <span class="cli">/mnt1</span>:
+<p class=cli>cp -a /usr/share/dualbootstuff/fixkeybag /mnt1</p>
+Back up original keybagd:
+<p class=cli>mv /mnt1/usr/libexec/keybagd /mnt1/usr/libexec/keybagd_bak</p>
+Move fixkeybag to <span class="cli">/mnt1/usr/libexec/keybagd</span>:
+<p class=cli>mv /mnt1/fixkeybag /mnt1/usr/libexec/keybagd</p><br>
+
+On iOS 10+ there's protection against replacing system launch daemons by something else:<br><br>
+<img class="align" src="resources/cs_panic.png"><br>
+It's done by comparing program identifier in codesigning blob with identifier in LaunchDaemon's property list. This protection is easy to fool. Rename our fake keybagd (which is fixkeybag actually) to original keybagd's identifier — <span class="cli">com.apple.keybagd</span>:
+<p class=cli>mv /mnt1/usr/libexec/keybagd /mnt1/usr/libexec/com.apple.keybagd</p>
+Run <b>ldid</b> against it:
+<p class=cli>ldid -S /mnt1/usr/libexec/com.apple.keybagd</p>
+Now it'll have <span class="cli">com.apple.keybagd</span> identifier in its code signing blob. Rename it back:
+<p class=cli>mv /mnt1/usr/libexec/com.apple.keybagd /mnt1/usr/libexec/keybagd</p><br>
+
+We’ll have to put keybagd on its rightful place after fixkeybag runs, of course
+
+<h3>Installing baseband firmware</h3>
+
+iOS 7+ don’t want baseband firmware inside ZIP archive, so the only thing we have to do is just copying:
+
+<p class=cli>mkdir -p /mnt1/usr/local/standalone/firmware/Baseband/Mav5</p>
+<p class=cli>cp -av /usr/local/standalone/firmware/Baseband/Mav5/* /mnt1/usr/local/standalone/firmware/Baseband/Mav5</p>
+<div class="desc">Where <span class="cli">Mav5</span> it would be <span class="cli">Mav4</span>, <span class="cli">Trek</span>, etc. depending on your device</div>
+
+<h2>Patching bootchain</h2>
+<h3>iBSS</h3>
+For iOS 7 process of patching is absolutely same. For iOS 8 and 9 too, but with tiny exception — load address is now loaded to register using LDR, instead of MOVT:<br><br>
+<img class="align" src="resources/ldr_loadaddr.png"><br>
+iOS 10 is a different story. LLB and iBSS is same thing now (iBoot and iBEC too), therefore it requires more or different patches. Just take on account that you can use older Stage 1 bootloader, it shouldn’t raise any issues
+
+<h3>iBEC</h3>
+For iOS 7 patching is same. But for iOS 8+ there’re 2 differences:
+<ul>
+<li>auto-boot=true patch isn’t a thing anymore, it’s no longer needed</li><br>
+
+<li><span class="cli">amfi_get_out_of_my_way=1</span> boot-arg should be added</li><br>
+
+<li>Previously iBoot found upgrade partition by its index in partition table (3rd). But now it’s done by searching for partition with special attribute it gets set if you call it <b>Upgrade</b>. For a first look problem can be easily solved by naming a partition so, but unfortunately first iOS will remove such partition on a next boot. That means we need to patch <span class="cli">mount_upgrade_partition</span> function in the way it will always mount third partition regardless what it’s called</li>
+</ul>
+<h4>mount_upgrade_partition patch</h4>
+Find loc where <span class="cli">failed to mount upgrade partition\n</span> string reference is loaded to a register:<br><br>
+<img class="align" src="resources/failed_mount_loc.png"><br>
+Find where the loc is called:<br><br>
+<img class="align" src="resources/where_loc_called.png"><br>
+Previous branch with link points to <span class="cli">mount_upgrade_partition</span> function:<br><br>
+<img class="align" src="resources/mount_upgrade_partition.png"><br>
+Next BL after <span class="cli">ADDS R0, 0x38</span> points to <span class="cli">mount_bootfs</span> function, which takes string with name of the block device with a partition as its only argument. These block devices have names in format <b>nand0X</b>, where <b>X</b> is a character describing partition number starting from “a”. So block device for third partition would be <b>nand0c</b>. Obviously there’s no such string in iBEC, that means you have to create your own. Free areas around build tags and styles are good for that:<br><br>
+<img class="align" src="resources/nand0c.png"><br>
+Replace some reference in the reference pool of the function by  the reference to your new string:
+<img class="align" src="resources/nand0c_ref.png"><br>
+Then fill with NOPs area between <span class="cli">MOV R7, SP</span> and BL <span class="cli">mount_bootfs</span> and put <span class="cli">LDR R0, =nand0c</span> (<span class="cli">LDR R0, [PC, space_between_pc_and_string_ref]</span>) in this area:<br><br>
+<img class="align" src="resources/nand0c_ldr.png"><br>
+
+<h4>iOS 10 notes</h4>
+Since iOS 10 flashable iBoot and iBEC are the same thing (<b>iBootStage2</b>), it now has two modes — <b>Remote boot</b> (iBEC mode) and <b>Local boot</b> (iBoot mode). We need it to always run in <b>Remote boot</b> mode. @tihmstar's fork of <b>iBoot32Patcher</b> implements a patch with such purpose. <a class="blacklink" href="https://github.com/NyanSatan/iBoot32Patcher">My fork</a> over @tihmstar's one allows you to choose which patches to apply. For iOS 10 iBootStage2 use it with the following options:
+<p class=cli>iBoot32Patcher iBootStage2.decrypted iBootStage2.prepatched -r -d -x -b "rd=disk0s1s3 amfi=0xff cs_enforcement_disable=1 amfi_get_out_of_my_way=1 -v"</p><br>
+
+Apple logo patch is finally no longer needed. Apple fixed those routines herself
+
+<h3>DeviceTree</h3>
+Patching is same as for iOS 6. Please note that <b>imagine</b> doesn’t support iOS 9+ device trees, so you’d be unable to check your patch
+
+<h2>First boot</h2>
+If you see <span class="cli">AppleKeyStore: disabling use of effaceable storage, using fake key</span> message and fixkeybag’s messages, then keybag has been generated and you can safely reboot to the first system<br><br>
+
+On iOS 7 you won’t see fixkeybag’s log, but will see message about failed AppleKeyStore operation. No worries, it’s alright<br><br>
+
+From the first system you can now mount secondary OS’ root filesystem and put keybagd on its rightful place:
+<p class=cli>mount_hfs /dev/disk0s1s3 /mnt1<br>
+mv /mnt1/usr/libexec/keybagd_bak /mnt1/usr/libexec/keybagd
+</p><br>
+
+After that second iOS should boot with no issues!<br><br>
+
+<center><a href="https://nyansatan.github.io/dualboot/" class="menu"><b>Back to main page</b></a></center><br>
+
+</div>
+
+<footer>
+Nyan Satan, 2018<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+</footer>
+
+
+</body>
+</html>

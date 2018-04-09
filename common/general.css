@@ -1,21 +1,20 @@
 
 body {
 
-   	margin:0 auto;
-	padding: 0;
    	height: 100%;
 	font-family: Helvetica;
-	
+	margin: auto;
 }
 
 div.main {
 	
-	padding: 10px;
-	margin:0 auto;
+	padding: 1px 10px;
+	margin: auto;
 	height: 100%;
 	min-height: 100%;
    	position: relative;	
 	max-width: 800px;
+	
 }
 
 div.separator {

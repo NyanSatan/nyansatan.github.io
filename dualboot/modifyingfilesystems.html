@@ -35,7 +35,10 @@ Mount it:
 Move <span class="cli">/private/var/*</span> to <span class="cli">/mnt2</span>:
 <p class="cli">mv -v /mnt1/private/var/* /mnt2</p>
 Remove all files, their contents will be destroyed anyway due to <b><i>no-effaceable-storage</i></b> Device Tree patch we'll make in the next part. Directories and symlinks must be left alone though:
-<p class="cli">rm -rf /mnt2/log/asl/SweepStore<br>rm -rf /mnt2/mobile/Library/PreinstalledAssets/*</p>
+<p class="cli">rm -rf /mnt2/log/asl/SweepStore<br>rm -rf /mnt2/mobile/Library/PreinstalledAssets/*<br>
+rm -rf /mnt2/mobile/Library/Preferences/.GlobalPreferences.plist<br>
+rm -rf /mnt2/mobile/.forward
+</p>
 Unmount <span class="cli">/dev/disk0s1s4</span>:
 <p class="cli">umount /mnt2</p>
 
@@ -50,7 +53,9 @@ Mount it:
 Move <span class="cli">/private/var/*</span> to <span class="cli">/mnt2</span>:
 <p class="cli">mv -v /mnt1/private/var/* /mnt2</p>
 Remove all files, their contents will be destroyed after conversion anyway:
-<p class="cli">rm -rf /mnt2/log/asl/SweepStore<br>rm -rf /mnt2/mobile/Library/PreinstalledAssets/*</p>
+<p class="cli">rm -rf /mnt2/log/asl/SweepStore<br>rm -rf /mnt2/mobile/Library/PreinstalledAssets/*<br>
+rm -rf /mnt2/mobile/Library/Preferences/.GlobalPreferences.plist<br>
+rm -rf /mnt2/mobile/.forward</p>
 Unmount <span class="cli">/dev/disk0s1s4</span>:
 <p class="cli">umount /mnt2</p>
 Convert it using <b>NoMoreSIGABRT</b> to make it protected:
