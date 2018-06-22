@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
+
+<title>iOS Dualboot - iOS 5</title>
+
+</head>
+
+<body>
+<div class="main">
+
+<h1>iOS 5 dualboot</h1>
+
+This article describes differences between dualbooting of iOS 6 (main parts of the guide are dedicated for it) and iOS 5
+
+<h2>Preparing RootFS</h2>
+Everything’s same as for iOS 6
+
+<h2>Partitioning</h2>
+Everything’s same either, with the exception that you must add at least <b>50-75 MiBs</b> for second System partition. iOS 5 has no PreinstalledAssets at <span class="cli">/var/mobile/Library/PreinstalledAssets</span>, as result when you move <span class="cli">/var/*</span> to a Data partition, not much space is freed. That’s especially important for the devices, whose baseband firmware isn’t flashed to a baseband itself, but is loaded from a filesystem, — <b>iPhone 4s</b> and <b>iPad 3</b>, if we count only those which support iOS 5. Add at least <b>75-90 MiBs</b>, if you’re dualbooting one of these
+
+<h2>Restoring RootFS</h2>
+Absolutely same as for iOS 6. <b>ASR</b> will grow size of restored root filesystem to the size of partition automatically
+
+<h2>Modifying filesystems</h2>
+Modifications for a Data partitions are same as for iOS 6, with the exception that there’s no need to remove all files if you’re on something lower than iOS 9. Also we need few other modifications, so don’t unmount it at this point<br><br>
+
+Unfortunately, iOS 5 doesn’t support <b>no-effaceable-storage</b>, which is convenient to solve data-protection related problems. That’s why you have to create <span class="cli">keybags</span> folder on a Data partition:
+
+<p class="cli">mkdir /mnt2/keybags</p>
+
+If you’re on iOS 6 or 5, you already can copy your current system keybag to a new Data:
+
+<p class="cli">cp -a /var/keybags/systembag.kb /mnt2/keybags</p>
+
+...because iOS 6 and 5 keybags are compatible. If not you must downgrade it first. Run <b>ttbthingy</b> to unlock using of UID-key:
+
+<p class="cli">ttbthingy</p>
+<img class="align" src="resources/ttbthingy.png">
+<div class="desc">Sometimes it’s needed to run it twice</div><br>
+
+Then run <b>fixkeybag</b> to actually downgrade the keybag:
+
+<p class="cli">fixkeybag -v2</p>
+<img class="align" src="resources/fixkeybag_v2.png"><br>
+
+Now, if you’re not on iOS 9 you can copy downgraded keybag too:
+
+<p class="cli">cp -a /tmp/systembag.kb /mnt2/keybags</p>
+
+Finally you can unmount your new Data partition (and patch its attributes if you’re on iOS 9)<br><br>
+
+In case of iOS 9, we’ll make our keybag be copied while booting:
+
+<p class="cli">nano /mnt1/private/etc/launchd.conf</p>
+
+Copy this line and save the file:
+<p class="cli">bsexec .. /bin/cp -a /systembag.kb /private/var/keybags</p>
+<img class="align" src="resources/launchd_conf_cp.png"><br>
+
+Copy the cp command, since there’s no one in iOS originally:
+<p class="cli">cp -a /bin/cp /mnt1/bin</p>
+
+And copy your downgraded keybag to the root of new System partition: 
+<p class="cli">cp -a /tmp/systembag.kb /mnt1</p>
+
+<b>Important note</b>: you must recopy your system keybag every time you change a passcode. <b>Way Out</b> allows running arbitrary scripts/Mach-Os right before booting, so you can automate the process<br><br>
+<b>Important note #2</b>: don't do anything data-protection related on a dualbooted iOS 5, like: changing passcode, obliteration, etc. This will cause regenerataion of keys in Effaceable Storage, first system will die
+
+<h3>Installing fixkeybag</h3>
+It’s not needed and even dangerous
+
+<h3>Packing baseband firmware</h3>
+Unlike iOS 7+ iOS 5 wants baseband firmware to be packaged in ZIP archive and unlike iOS 6 it wants it to be stored at <span class="cli">/usr/standalone/firmware</span>
+
+So if you’re on iOS 6 you can simply copy a baseband firmware:
+
+<p class="cli">cp -a /usr/local/standalone/firmware/Baseband/Trek/Trek-personalized.zip /mnt1/usr/standalone/firmware</p>
+<div class="desc">Where <span class="cli">Trek</span> it may be <span class="cli">Mav4</span> in case if you've got iPad 4. Same applies to the command below</div><br>
+
+If you’re on iOS 7 or newer:
+<p class="cli">
+cd /usr/local/standalone/firmware/Baseband/Trek<br>
+zip -r0 /mnt1/usr/standalone/firmware/Trek-personalized.zip *
+</p>
+
+<h2>Patching bootchain</h2>
+<h3>iBSS and iBEC</h3>
+Patches are same<br><br>
+<b>Note</b>: for older devices like <b>iPhone 3GS</b> it's highly recommended to use <a class="blacklink" href="alternativeuntethermethod.html">alternative untether method</a>
+
+<h3>DeviceTree</h3> 
+As mentioned above, <b>no-effaceable-storage</b> isn't supported by iOS 5, so there's no need to patch DeviceTree; just decrypt it<br><br>
+
+<center><a href="https://nyansatan.github.io/dualboot/" class="menu"><b>Back to main page</b></a></center><br>
+
+
+</div>
+
+<footer>
+Nyan Satan, 2018<br>
+<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
+<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
+<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
+</footer>
+</body>
+</html>
