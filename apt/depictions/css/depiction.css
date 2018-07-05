@@ -1,9 +1,17 @@
 body {
 	font-family: Helvetica;
+	margin: 8px 0px;
+}
+
+div.main {
 	background-color: white;
 	border-top: 1px solid #c8c7cc;
 	border-bottom: 1px solid #c8c7cc;
-	margin: 0px;
+}
+
+div.text {
+	margin-left: 8px;
+	margin-right: 8px;
 }
 
 h3 {
