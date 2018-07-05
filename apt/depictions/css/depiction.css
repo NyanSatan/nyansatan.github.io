@@ -1,5 +1,9 @@
 body {
 	font-family: Helvetica;
+	background-color: white;
+	border-top: 1px solid #c8c7cc;
+	border-bottom: 1px solid #c8c7cc;
+	margin: 0px;
 }
 
 h3 {
