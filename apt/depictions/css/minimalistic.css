@@ -1,0 +1,8 @@
+body {
+	margin: 8px 0px;
+}
+
+div.main {
+	border-top: 1px solid #c8c7cc;
+	border-bottom: 1px solid #c8c7cc;
+}
