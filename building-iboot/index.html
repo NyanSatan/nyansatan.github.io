@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../new-common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
+
+<title>Building iBoot</title>
+
+</head>
+
+<body>
+
+<img class="cover" src="resources/cover.png" srcset="resources/cover.png 2x">
+
+<div class="main">
+<div class="text">
+
+<h1>Building iBoot</h1>
+<div class="desc">Created on 14.07.18</div>
+
+<div class="p"><b>Important note:</b> this article discusses Apple internal software. This information is provided for educational purposes only. Also playing with low-level software directly may lead to a hardware damage. You have been warned
+</div>
+
+<div class="p">In February 2018 someone leaked <b>Apple iBoot's</b> source code to a general public. According to timestamps in files and various signs in the code (string obfuscation, missing support for anything older than A5, four <b>PRODUCTS</b> (<b>LLB</b>, <b>iBoot</b>, <b>iBSS</b>, <b>iBEC</b>) instead of two (<b>iBootStage1</b>, <b>iBootStage2</b>) like in iOS 10) we can freely affirm that this code belongs to some late iOS 9 build. More information about a story of the leak is available <a href="https://motherboard.vice.com/en_us/article/xw5yd7/how-iphone-iboot-source-code-leaked-on-github">here</a>
+</div>
+
+
+
+<h3>What can or cannot be built</h3>
+
+<div class="p">For a pretty long time it has been known that the leak is incomplete and therefore it's impossible to build a working copy of iBoot from it. As far as I know, two security researchers on Twitter tried to do that. One of them, @xerub, actually <a href="https://twitter.com/xerub/status/961418970837512192">managed to build bootloaders</a>, but <a href="https://twitter.com/xerub/status/976529521225605120">according to himself</a> he simply re-created missing files. I highly doubt that a bootloader built in such way would actually work. Especially if we take on an account, that missing files are most likely related to a power management
+</div>
+
+<div class="p">I performed my own research and found out that:
+<ul>
+<li>iBoot for <b>A5</b> targets (<b>s5l8940x</b>, <b>s5l8942x</b>, <b>s5l8945x</b>, <b>s5l8947x</b>) and <b>s5l8747x</b> (used in <b>Haywire</b>) can be built, but modifications are required in <b>device_map</b> (we'll talk about this later)</li>
+<li>iBoot for <b>A6</b> targets (both <b>s5l8950x</b> and <b>s5l8955x</b>) can be built</li>
+<li>iBoot for <b>A7</b> (<b>s5l8960x</b>), <b>A8</b> (<b>t7000</b>, <b>t7001</b>), <b>A9</b> (<b>s8000</b>, <b>s8003</b>, <b>s8001</b>), <b>S1</b> (<b>s7002</b>) and <b>S1P</b>/<b>S2</b> (<b>t8002</b>) targets can not be built due to a lot of missing headers</li>
+</ul>
+</div>
+
+<div class="p">Also <b>DEBUG</b>-fused bootloaders don't work for some unobvious reason. There's a special technique to solve it, but it wasn't found by me, so I cannot share it
+</div>
+
+<h3>Building</h3>
+<div class="p">First step is pretty obvious:
+<p class="cli">cd iboot</p>
+
+Second one, however, isn't so obvious:
+<p class="cli">sudo make APPLICATIONS="iBoot" TARGETS="n41 n42" BUILDS="DEVELOPMENT DEBUG" PRODUCTS="iBSS iBEC"</p>
+
+Let's define what it all means:
+<ul>
+<li><b>APPLICATIONS</b> argument defines applications to be built, obviously. Valid values: <b>iBoot</b>, <b>SecureROM</b> (bootrom) and <b>EmbeddedIOP</b> (something loaded by kernel and situated in its cache)</li>
+<li><b>TARGETS</b> defines device models to be built for (without "ap"/"dev" part)</li>
+<li><b>BUILDS</b> defines <b>BUILD_STYLE</b>s to be built of. Valid values for iBoot application: <b>RELEASE</b> (just as normal iBoot supplied with IPSWs), <b>DEVELOPMENT</b> (untrusted image execution on Image3-compatible devices, amazing level of verbosity on newer versions and a lot of additional commands), <b>DEBUG</b> (same as <b>DEVELOPMENT</b>, but even more verbosity and even more additional commands) and <b>SECRET</b> (most likely just an easter egg, this build style isn't defined in <b>device_map</b>, so you can't build it)</li>
+</ul>
+</div>
+
+<div class="p">For sure it won't work out of the box. You'll run into several problems. For environment I highly recommend to use <b>OS X El Capitan</b> with <b>Xcode 7</b> installed. Higher SDKs should work too, lower are highly not recommended
+</div>
+
+
+<h4>Problem 1: missing SDK</h4>
+<div class="p">Embedded mechanisms of finding a path to a SDK usually fail:
+<p class="cli">
+%%% building on OS darwin
+xcodebuild: error: SDK "iPhoneOS" cannot be located.<br>
+xcodebuild: error: SDK "ProductName" cannot be located.<br>
+xcodebuild: error: SDK "iPhoneOS" cannot be located.<br>
+xcodebuild: error: SDK "iPhoneOS" cannot be located.<br>
+Makefile:86: *** A path to a component of the SDK specifies a directory that does not exist (SDKROOT=).  Stop.
+</p>
+
+This can easily be fixed by editing main makefile. In my case, for example, it's enough to set <span class="cli">SDK_PLATFORM</span> variable to <b>"iOS 9.3"</b>
+</div>
+
+
+<h4>Problem 2: missing executive permissions for tools</h4>
+<div class="p">The next issue you might get is something looking like this:
+<p class="cli">
+make: execvp: ./tools/generate_debug_hashes.py: Permission denied
+</p>
+This is because executive permissions were lost for everything in <span class="cli">tools/</span> directory. Can easily be fixed:
+<p class="cli">
+sudo chmod +x tools/*
+</p>
+
+</div>
+
+
+<h4>Problem 3: missing embedded_device_map</h4>
+<div class="p">The next thing you'll have to do is to add <b>embedded_device_map</b> to <span class="cli">/usr/local/bin</span> or <span class="cli">/usr/bin</span>:
+<p class="cli">
+%%%%%% library_list iBoot<br>
+makefiles/device_map.mk:15: *** Cannot locate embedded_device_map - device map queries will fail..  Stop.<br>
+make: *** [library_list-iBoot] Error 2
+</p>
+
+<b>embedded_device_map</b> is a tiny shell script that makes queries from <b>device_map.db</b>. Very important thing. Can be found in <b>HomeDiagnostics.pkg</b>. This is internal stuff
+</div>
+
+<div class="p">It also wants <b>image3maker</b> and <b>img4payload</b>, but they aren't important
+</div>
+
+
+<h4>Problem 4: missing device_map.db</h4>
+<div class="p">Obviously, <b>embedded_device_map</b> is useless without a database it will make queries from. If it's missing, you'll get quite unobvious messages:
+<p class="cli">
+%%%%%% library_list iBoot<br>
+apps/iBoot/iBoot.mk:162: *** multiple target patterns.  Stop.<br>
+make: *** [library_list-iBoot] Error 2
+</p>
+
+<b>device_map.db</b> can be found in <b>HomeDiagnostics.pkg</b> as well. You can find out where to put it by reading <span class="cli">DEVICEMAP_DATABASE</span> variable in <span class="cli">makefiles/device_map.mk</span> or by trying to build <b>SecureROM</b>, it will print where it should be
+
+</div>
+
+<div class="p"><b>device_map.db</b> is SQLite 3 database that defines targets' properties (since most of them are useless for building iBoot, most likely it's used somewhere else. For example, there's plist version of it in <b>Purple Restore</b>) and which <b>PRODUCTS</b> of which <b>BUILD_STYLE</b>s can be built for it
+</div>
+
+
+<h4>Problem 5: unused variable</h4>
+<div class="p">
+For 2nd-stage bootloaders there'll be error:
+<p class="cli">
+CC build/n41-iBEC-DEBUG/lib/macho/macho.o<br>
+lib/macho/macho.c:29:17: error: unused variable 'gkalsr_debug'
+</p>
+Solution is very easy: just remove or comment out this variable in <span class="cli">lib/macho/macho.c</span>
+</div>
+
+
+<h4>Problem 6: -lcompiler_rt-static</h4>
+<div class="p">When everything is almost built, when it's time to assemble all components in a single image, this is what you'll get:
+<p class="cli">
+LD build/n42-iBEC-DEVELOPMENT/iBEC.sys using -L/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS9.3.sdk/usr/local/lib -lcompiler_rt-static ./build/lib-armv7-thumb-DEVELOPMENT/lib/libbuiltin/LIBBUILTIN.a<br>
+ld: warning: directory not found for option '-L/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS9.3.sdk/usr/local/lib'<br>
+ld: library not found for -lcompiler_rt-static<br>
+clang: error: linker command failed with exit code 1 (use -v to see invocation)<br>
+make[2]: *** [build/n42-iBEC-DEVELOPMENT/iBEC.sys] Error 1<br>
+make[1]: *** [build-n42-iBEC-DEVELOPMENT] Error 2
+</p>
+
+This can be easily solved as well: just remove <span class="cli">-lcompiler_rt-static</span> flag from <span class="cli">_RUNTIME_FLAGS</span> variable in <span class="cli">makefiles/build.mk</span>
+
+</div>
+
+
+<div class="p">In the end, if everything's fine, you should see something like this:
+<p class="cli">
+STRIP build/n41-iBEC-DEBUG/iBEC.stripped<br>
+dSYM build/n41-iBEC-DEBUG/iBEC.sys.dSYM<br>
+SIZE build/n41-iBEC-DEBUG/iBEC.size<br>
+STRIP build/n42-iBEC-DEVELOPMENT/iBEC.stripped<br>
+dSYM build/n42-iBEC-DEVELOPMENT/iBEC.sys.dSYM<br>
+STRIP build/n41-iBEC-DEVELOPMENT/iBEC.stripped<br>
+SIZE build/n42-iBEC-DEVELOPMENT/iBEC.size<br>
+dSYM build/n41-iBEC-DEVELOPMENT/iBEC.sys.dSYM<br>
+SIZE build/n41-iBEC-DEVELOPMENT/iBEC.size<br>
+STRIP build/n42-iBEC-DEBUG/iBEC.stripped<br>
+dSYM build/n42-iBEC-DEBUG/iBEC.sys.dSYM<br>
+SIZE build/n42-iBEC-DEBUG/iBEC.size<br>
+__TEXT	__DATA	__OBJC	others	dec	hex<br>
+380928  73728	0	0	454656	6f000	<br>
+__TEXT	__DATA	__OBJC	others	dec	hex<br>
+344064	73728	0	0	417792	66000	<br>
+BIN build/n41-iBEC-DEBUG/iBEC.bin<br>
+BIN build/n41-iBEC-DEVELOPMENT/iBEC.bin<br>
+__TEXT	__DATA	__OBJC	others	dec	hex<br>
+344064	73728	0	0	417792	66000	<br>
+0+0 records in<br>
+0+0 records out<br>
+0 bytes transferred in 0.000011 secs (0 bytes/sec)<br>
+0+0 records in<br>
+0+0 records out<br>
+0 bytes transferred in 0.000010 secs (0 bytes/sec)<br>
+BIN build/n42-iBEC-DEVELOPMENT/iBEC.bin<br>
+0+0 records in<br>
+0+0 records out<br>
+0 bytes transferred in 0.000008 secs (0 bytes/sec)<br>
+__TEXT	__DATA	__OBJC	others	dec	hex<br>
+380928	73728	0	0	454656	6f000	<br>
+BIN build/n42-iBEC-DEBUG/iBEC.bin<br>
+0+0 records in<br>
+0+0 records out<br>
+0 bytes transferred in 0.000009 secs (0 bytes/sec)<br>
+348160+0 records in<br>
+348160+0 records out<br>
+348160 bytes transferred in 1.518022 secs (229351 bytes/sec)<br>
+348160+0 records in<br>
+348160+0 records out<br>
+348160 bytes transferred in 1.523777 secs (228485 bytes/sec)<br>
+385024+0 records in<br>
+385024+0 records out<br>
+385024 bytes transferred in 1.682545 secs (228834 bytes/sec)<br>
+385024+0 records in<br>
+385024+0 records out<br>
+385024 bytes transferred in 1.622805 secs (237258 bytes/sec)<br>
+</p>
+</div>
+
+
+<div class="p">In <span class="cli">build/</span> directory you'll find sub-directories with your compiled iBoots. <span class="cli">*.sys</span> is non-stripped <b>Mach-O</b>, it's very nice in disassembler, since every function and even some variables have their native names. <span class="cli">*.bin</span> is a binary you can load on your device
+</div>
+
+
+<h3>Tweaking device_map.db to support A5 devices</h3>
+<div class="p">As mentioned above, <b>device_map.db</b> is SQLite3 database. Its schema can easily be gotten using <b>embedded_device_map</b>:
+<p class="cli">
+embedded_device_map -db device_map.db -schema
+</p>
+
+<div class="cli">
+As you can see, it consists of three TABLEs:
+<ul>
+<li><span class="cli">Targets</span> is most important TABLE, defines properties of every supported device. There're a lot of properties, but only some of them seem to matter for building iBoot: <b>Target</b>, <b>TargetType</b>, <b>Platform</b>, <b>ChipID</b>, <b>SecurityEpoch</b>, <b>CryptoHashMethod</b>, <b>ProductID</b> (seems to be not important) and <b>ImageFormat</b>; look into <span class="cli">makefiles/device_map.mk</span> to check. Duplicate one of the <span class="cli">Targets</span> or just take one of existing and fill up these properties with data. Every of them is public knowledge</li>
+
+<li><span class="cli">Manifests</span> TABLE defines <b>manifestId</b>s for devices from <span class="cli">Targets</span></li> of <b>manifestType</b>s (valid values are <b>Debug</b>, <b>Development</b>, <b>Production</b>, <b>FactoryFA</b> and <b>VendorInstall</b>). Replace <b>Target</b> property of some unimportant device with <b>TargetType</b> property of target you created in <span class="cli">Targets</span> table for every <b>manifestType</b>:
+<img class="align" src="resources/manifests.png" srcset="resources/manifests.png 2x">
+
+<li><span class="cli">Files</span> table defines manifests for files with specified <b>manifestId</b>. No need to touch it</li>
+</ul>
+</div>
+
+
+</div>
+
+
+</div>
+</div>
+
+</body>
+
+</html>
