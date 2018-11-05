@@ -107,3 +107,23 @@ img.align {
 	display: block;
 	background-size: contain;
 }
+
+div.citation {
+	padding-top: 10px;
+	margin-left: 5%;
+	margin-right: 5%;
+}
+
+footer {
+	font-family: Merriweather;
+	text-align: center;
+	color: white;
+	line-height: 30px;
+	background-color: rgb(0, 0, 51);
+}
+
+img.footer {
+	height: 40px;
+	width: 40px;
+	margin: 2px;
+}
