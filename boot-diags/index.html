@@ -3,91 +3,133 @@
 <head>
 
 <link rel="icon" href="../apple-touch-icon.png">
-<link rel="stylesheet" type="text/css" href="../common/general.css">
+<link rel="stylesheet" type="text/css" href="../new-common/general.css">
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
 
-<title>Booting diags from iBoot recovery shell</title>
+<title>Booting diags</title>
 
 </head>
 
 <body>
 
+<img class="cover" src="resources/cover.png" srcset="resources/cover.png 2x">
+
 <div class="main">
+<div class="text">
+
 <h1>Booting diags from iBoot recovery shell</h1>
+<div class="desc">Created on 19.04.19</div>
 
-<b>Important note:</b> this article discusses Apple internal software. This information is provided for educational purposes only. Also playing with low-level software directly may lead to a hardware damage. You have been warned
+<div class="p"><b>Important note:</b> this article discusses Apple internal software. This information is provided for educational purposes only. Also playing with low-level software directly may lead to a hardware damage. You have been warned
+</div>
 
-<br><br>
-<div class="separator"></div> 
 <br>
 
-<b>diags</b> (or <b>diag</b>) is the Apple's internal diagnostic program designed to run over an iBoot. It spawns shell accessible over the serial interface with a set of powerful commands (memory manipulation, editing SysCfg, NVRAM, etc.). Also optionally special menu can be spawned right on a device's display. There's no multi-touch driver however, so an user can only use buttons for a navigation:
+<div class="p">
+<h2>The problem</h2>
 
-<center><blockquote class="twitter-tweet" data-lang="en"><p lang="en" dir="ltr">Diags loaded by RELEASE-fused iBoot on production n41ap <a href="https://t.co/3QS1myi0oZ">pic.twitter.com/3QS1myi0oZ</a></p>&mdash; Lisa Braun (@nyan_satan) <a href="https://twitter.com/nyan_satan/status/996889024789991424?ref_src=twsrc%5Etfw">May 16, 2018</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></center>
+<div class="p">
+Originally <b>diags</b> are loaded either by <b>diags</b> shell command or by <b>diags</b> boot-command. Both use the same routine that first tries to find diags in NOR/nand_firmware and if fails tries to load it from filesystem with index from <b>boot-partition</b> environment variable with path taken from <b>diags-path</b>/<b>diags-vendor-path</b> variable
+</div>
 
-<h2>The ways to boot diags</h2>
-<b>Note</b>: Everything in this article is about iOS 6.x bootloaders<br><br>
-In both <b>RELEASE</b>- and <b>DEVELOPMENT</b>-fused iBoots (only talking about flashable iBoot, not iBEC) there's a routine for booting diags:<br><br>
-<img class="align" src="resources/diags_boot_command.png"><br>
+<div class="p">
+On <b>RELEASE</b>-fused iBoot the shell command isn't available at all (since iPhone OS 3.1). The boot-command is still there (only on 2nd-stage flashable variant called "iBoot"), but requires many actions: patch signature checks, patch boot-command hardcoded variable in iBoot to always have value <b>diags</b>, put diags image on filesystem and create <b>diags-path</b> variable
+</div>
 
-In RELEASE bootloaders it only works as a <b>boot-command</b> (so it will be executed automatically if <span class="cli">boot-command</span> iBoot/NVRAM variable is set to <span class="cli">diags</span>), in DEVELOPMENT it works both as a boot-command and as a normal command accessible through the command shell<br><br>
+<div class="p">
+In my opinion in many cases it would be more convinient to load diags using recovery shell. But on newer devices (e.g. iPhone 5) if you simply send an image over USB and send <b>go</b>-command, it won't work, you'll only get a black screen
+</div>
 
-As you can see on the screenshot above, first it tries to find and boot an image of type <span class="cli">diag</span> in <b>NOR</b> (by the term "NOR" I mean a storage where boot images are situated, depending on a device it can be either the <b>1 MB SPI NOR chip</b> or the special partition on NAND, which is usually referred by iBoot as "<b>nand_firmware</b>"). If it fails to do so, it tries to find the image on a filesystem defined by <span class="cli">boot-partition</span> variable on a device defined by <span class="cli">boot-device</span> variable using path defined by <span class="cli">diags-path</span> or <span class="cli">diags-vendor-path</span> variables (not sure what's the difference between them)<br><br>
+<div class="p">
+The solution for that is very simple though and requires literally one byte patch (among signature check patch of course)
+</div>
 
-For some unobvious reason, I wasn't able to use the original routine to boot diags, so I invented a tiny patch for iBoot to see it through. This also obviates need of touching NOR or filesystem<br>
+</div>
 
-<h2>The patch</h2>
+<br>
 
-First of all we have to locate the original diags routines. This can be easily done by using <b>iBoot32Patcher</b>:
-<p class="cli">iboot32patcher iBoot.decrypted /dev/null -c diags 0x0</p>
-<img class="align" src="resources/diags_offset.png"><br>
-In this case it's located at <b>0x4FF0093D minus 0x1</b>. The address is stored increased by one because <b>least significant bit</b> (<b>LSB</b>, bit 0) must be 1, if this code is written in <b>Thumb</b> (it is in our case)<br>
+<div class="p">
+<h2>The solution</h2>
+<div class="p">
+There's a function in every iBoot called <span class="cli">prepare_and_jump</span>. Its prototype:
 
-Now find a function with this address and scroll to the end of it:<br><br>
-<img class="align" src="resources/jumpto_original.png"><br>
+<p class="cli">
+void prepare_and_jump(enum boot_target boot, void *ptr, void *arg)
+</p>
 
-This code is responsible to finally boot an unpacked and validated image, it's decompilation would look in this way:
-<p class="cli">jumpto(5, 0x40000000, 0, 0)</p>
-Where <span class="cli">5</span> is a kind of mode of jumping, 5th is designed to boot diags; and <span class="cli">0x40000000</span> is a <b>load address</b>. Load address is a place in memory where loaded from NOR/filesystem or uploaded over USB images are stored<br><br>
+</div>
 
-Note that <b>0x40000000</b> is loaded from the function's stack, and this is indeed a problem since we're not going to execute the whole function. Let's fix it. NOP out the LDR and BL before it:<br><br>
-<img class="align" src="resources/jumpto_nopped.png"><br><br>
-
-Then replace 2 last NOPs with <span class="cli">MOV R1, LOADADDR</span>. For <b>s5l8900x</b>-<b>s5l8720x</b> load address is 0x09000000, for <b>s5l8920x</b>-<b>s5l8930x</b> is 0x40000000 and for <b>s5l8940x</b>-<b>s5l8955x</b> is 0x80000000:<br><br>
-<img class="align" src="resources/jumpto_patched.png"><br>
-
-Now compute the difference and apply it to the original file. Now comes a tricky part, using iBoot32Patcher point <b>ticket</b> command to <b>the address where your <span class="cli">MOV R1, LOADADDR</span> starts (0x4FF00A00 in my case) plus 0x1</b> (remember the LSB thing?):<br><br>
-<img class="align" src="resources/cmd_handler_patched.png"><br>
-
-Pack the patched file:
-<p class="cli">image3maker -t ibec -f iBoot.patched -o iBoot.img3</p>
-<img class="align" src="resources/image3_packed.png"><br><br>
-
-Unpack a diags image3, they're usually unencrypted:
-<p class="cli">xpwntool diag.img3 diag.raw</p>
-
-Now load the patched iBoot, send the image and <b>ticket</b> command:<br><br>
-<img class="align" src="resources/diags_send_and_execute.png"><br><br>
-
-After about 7-10 seconds device's display should turn purple. The shell is now ready to receive commands. Launch some program for reading/writing over UART and send <span class="cli">menu -a</span> command:<br><br>
-<img class="align" src="resources/menu-a.png"><br><br>
-
-The menu should now appear on the display. You can also send <span class="cli">help</span> to get the list of all available features. Yes, an output from diags is very messy<br><br>
-
+<div class="p">
+It's used to perform jumps to various images: like another iBoot, kernel or diags
 </div>
 
 
 
-<footer>
-Nyan Satan, 2018<br>
-<a href="https://twitter.com/nyan_satan"><img src="../common/twitter.png" height=44 width=44></a>
-<a href="https://github.com/NyanSatan"><img src="../common/github.png" height=44 width=44></a>
-<a href="mailto:nyansatan@icloud.com"><img src="../common/mail.png" height=45 width=45></a>
 
+<div class="p">
+Let's talk about args it takes:
+<ul>
+<li><b>boot</b> - boot target. Available targets:
+<p class="cli">
+	BOOT_UNKNOWN = 0<br>
+	BOOT_HALT<br>
+	BOOT_IBOOT<br>
+	BOOT_DARWIN<br>
+	BOOT_DARWIN_RESTORE<br>
+	BOOT_DIAGS<br>
+	BOOT_TSYS<br>
+	BOOT_SECUREROM<br>
+	BOOT_MONITOR<br>
+	BOOT_DALI
+</p>
+</li>
+
+<li><b>ptr</b> - pointer to raw image to jump on or sometimes to a boot trampoline</li>
+
+<li><b>arg</b> - pointer to raw image when a boot trampoline is used</li>
+
+</ul>
+</div>
+
+<div class="p">
+<b>go</b>-command uses <span class="cli">BOOT_UNKNOWN</span> (0x0). It's fine for booting iBoot, but not diags. What we're going to do here is to make it use <span class="cli">BOOT_DIAGS</span> (0x5) instead
+</div>
+
+</div>
+
+<br>
+
+<div class="p">
+<h2>The patch</h2>
+<div class="p">
+First we need to find <b>go</b>-command handler function. It's very easy - it always prints something like <i>jumping into image at 0x44000000</i>, so we can find it by searching where such string is used:<br>
+
+<img class="align" src="resources/patch.png"><br>
+
+First argument for <span class="cli">prepare_and_jump</span> is loaded from <b>R0</b> according to the calling conventions. Patch this <span class="cli">MOVS R0, #0</span> to be <span class="cli">MOVS R0, #5</span> (<span class="cli">00 20</span> to <span class="cli">05 20</span>):<br>
+
+<img class="align" src="resources/patched.png"><br>
+
+</div>
+
+<div class="p">
+That's all. Don't forget to patch signature checks. And then you can send Image3 with diags over USB and jump to it just by sending <b>go</b>-command
+</div>
+
+
+</div>
+
+</div>
+</div>
+
+<footer>
+Lisa Braun, 2019<br>
+<a href="https://twitter.com/nyan_satan"><img class="footer" src="../new-common/twitter.png"></a>
+<a href="https://github.com/NyanSatan"><img class="footer" src="../new-common/github.png"></a>
 </footer>
 
-
 </body>
+
 </html>
