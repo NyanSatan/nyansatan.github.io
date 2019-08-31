@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" type="text/css" href="../new-common/general.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
+
+<title>Accessing Power NVRAM</title>
+
+</head>
+
+<body>
+
+<img class="cover" src="resources/cover.png" srcset="resources/cover@2x.png 2x">
+
+<div class="main">
+<div class="text">
+
+<h1>Accessing Power NVRAM</h1>
+<div class="desc">Created on 30.08.19</div>
+
+<div class="p">
+The information about what Power NVRAM is and why we would want to access it is available here, in my Twitter thread released few weeks ago:
+
+<center>
+<blockquote class="twitter-tweet" data-lang="en"><p lang="en" dir="ltr">Here is my little thread about Power NVRAM — another persistent key-value storage, located right on PMU chip. Only talking about iBoot context <a href="https://t.co/T8lKhYT2gL">pic.twitter.com/T8lKhYT2gL</a></p>&mdash; Lisa Braun (@nyan_satan) <a href="https://twitter.com/nyan_satan/status/1162631189938745345?ref_src=twsrc%5Etfw">August 17, 2019</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+</center>
+
+
+<br>
+
+This is just a guide about accessing it. In the end you'll be able to achieve this:
+
+<center>
+<blockquote class="twitter-tweet" data-lang="en"><p lang="en" dir="ltr">Managed to enable debug-uarts on every kind of iBoot without any patches, so it works even with signed bootchain <a href="https://t.co/g6G5VgDrVk">https://t.co/g6G5VgDrVk</a> <a href="https://t.co/xqaV9ehvKW">pic.twitter.com/xqaV9ehvKW</a></p>&mdash; Lisa Braun (@nyan_satan) <a href="https://twitter.com/nyan_satan/status/1156534325514575872?ref_src=twsrc%5Etfw">July 31, 2019</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+</center>
+
+</div>
+
+<div class="p">
+<h2>The synopsys</h2>
+
+We'll use 2 functions embedded in iBoot (only talking about 2nd-stage) - <span class="cli">power_get_nvram()</span> and <span class="cli">power_set_nvram()</span> which get and set Power NVRAM variables respectively. We'll locate the functions in iBoot image (iOS 6.1.3 one in this example) and then call them using <b>Lina</b> - my iBoot payload which allows calling arbitrary functions (and many more things!)
+
+</div>
+
+<div class="p">
+<h2>Finding power_get_nvram()</h2>
+
+<div class="p">
+The function's prototype:
+
+<p class="cli">
+int power_get_nvram(u_int8_t key, u_int8_t *data);
+</p> 
+</div>
+
+<div class="p">
+First find where <span class="cli">debug-uarts</span> string is loaded:
+
+<img class="align" src="resources/debug-uarts.png"><br>
+
+It's used as first argument for <span class="cli">env_get_uint()</span>. This function is used to retrieve <span class="cli">debug-uarts</span> value from env/NVRAM. The result of that function is then passed to <span class="cli">debug_enable_uarts()</span>
+
+</div>
+
+<div class="p">
+
+<span class="cli">debug_enable_uarts()</span> is called twice. First in <span class="cli">platform_early_init()</span> and then in <span class="cli">main_generic()</span> (where we just found it). Find its call in <span class="cli">platform_early_init()</span>:
+
+<img class="align" src="resources/platform_early_init.png"><br>
+
+The first call before <span class="cli">debug_enable_uarts()</span>'s call is the call to <span class="cli">power_get_nvram()</span>
+
+</div>
+
+</div>
+
+<div class="p">
+<h2>Finding power_set_nvram()</h2>
+
+<div class="p">
+The function's prototype:
+
+<p class="cli">
+int power_set_nvram(u_int8_t key, u_int8_t data);
+</p> 
+</div>
+
+<div class="p">
+Even earlier there's a <span class="cli">boot_set_stage()</span> call:
+
+<img class="align" src="resources/boot_set_stage-call.png"><br>
+
+Last function called in <span class="cli">boot_set_stage()</span> is <span class="cli">power_set_nvram()</span>:
+
+<img class="align" src="resources/boot_set_stage.png"><br>
+
+</div>
+
+</div>
+
+<div class="p">
+<h2>Making use of the functions</h2>
+
+<div class="p">
+First, patch iOS 6 (3, 4, 5, 7, 8 should work too, but iOS 6.1 iBoot is the best for Lina's embedded offset resolver) iBoot to point <span class="cli">ticket</span> command to load address:
+
+<p class="cli">
+iboot32patcher iBoot iBoot.patched -c ticket 0x80000000
+</p>
+
+Load this iBoot. Send <a href="resources/Lina.arm32.RELEASE.bin">Lina</a> to load address. Send <span class="cli">ticket</span> command. You should see something like this in the end of a serial log:
+
+<img class="align" src="resources/lina-init.png">
+
+Now, commands to Lina must start with <span class="cli">lina</span> instead of <span class="cli">ticket</span>. For example, let's set iBootDebug key to 0x1 using <span class="cli">power_set_nvram()</span> (don't forget to add 1 to function pointers as these are Thumb ones):
+
+<div class="p">
+Lina's <span class="cli">function</span>'s syntax:
+<p class="cli">
+lina function pointer [arg1, arg2, arg3, arg4]
+</p>
+</div>
+
+<p class="cli">
+[l] lina function 0xBFF0D3D1 0x1 0x1<br>
+returned: 0x0
+</p>
+
+And verify that using <span class="cli">power_get_nvram()</span>:
+
+<p class="cli">
+[l] lina function 0xBFF0D361 0x1 0x80000000<br>
+returned: 0x0<br>
+[l] lina mdb 0x80000000 0x1<br>
+0x80000000: 01
+</p>
+
+<div class="p">
+Seems correct. Let's reboot device and check for additional output:
+<img class="align" src="resources/new-output.png">
+</div>
+
+</div>
+
+</div>
+
+
+</div>
+</div>
+
+<footer>
+Lisa Braun, 2019<br>
+<a href="https://twitter.com/nyan_satan"><img class="footer" src="../new-common/twitter.png"></a>
+<a href="https://github.com/NyanSatan"><img class="footer" src="../new-common/github.png"></a>
+</footer>
+
+</body>
+
+</html>
