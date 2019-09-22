@@ -1,0 +1,38 @@
+
+div.tab {
+	float: left;
+	text-align: center;
+	vertical-align: middle;
+	line-height: 50px;
+	width: 50%;
+    -webkit-box-sizing: border-box;  
+    -moz-box-sizing: border-box;  
+    box-sizing: border-box;
+
+    font-family: Merriweather;
+}
+
+div.tab-active {
+	font-weight: bold;
+	color: rgb(0, 0, 151);
+	border-bottom: 3px solid rgb(0, 0, 151);
+}
+
+div.tabs-content {
+	clear: both;
+	padding-top: 15px;
+}
+
+div.post {
+	margin: 0 auto;
+	max-width: 600px;
+}
+
+img.post {
+	padding: 15px 0;
+}
+
+a.link {
+	color: inherit;
+	text-decoration: none;
+}

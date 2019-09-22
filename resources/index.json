@@ -1,0 +1,78 @@
+{
+	"photo" : "resources/photo.jpg",
+	"posts" : [
+		{
+			"title" : "iOS dualboot guide",
+			"date" : "5.5.17",
+			"desc" : "(Almost) complete dualboot guide for 32-bit iOS devices",
+			"picture" : "resources/dualboot.jpg",
+			"link" : "dualboot"
+		},
+		{
+			"title" : "Accessing Power NVRAM using iBoot",
+			"date" : "30.8.19",
+			"desc" : "Learn how to access Power NVRAM to get debug UART on any iBoot",
+			"picture" : "resources/new-output.png",
+			"link" : "power-nvram"
+		},
+		{
+			"title" : "Booting diags from iBoot recovery shell",
+			"date" : "19.4.19",
+			"desc" : "Simple method to boot diags image from iBoot shell on newer armv7 devices",
+			"picture" : "resources/diags.jpg",
+			"link" : "boot-diags"
+		},
+		{
+			"title" : "Exploiting the iOS 5 iBoot bug",
+			"date" : "5.11.18",
+			"desc" : "My first ever exploit write-up. Learn how to exploit HFS+ bug to get untethered code execution",
+			"picture" : "resources/hello-darkness.png",
+			"link" : "exploiting-ios-5-iboot"
+		},
+		{
+			"title" : "Building iBoot",
+			"date" : "14.7.18",
+			"desc" : "Dramaful guide for building iBoot from stolen iOS 9 iBoot source code",
+			"picture" : "resources/dev-iboot.png",
+			"link" : "building-iboot"
+		},
+		{
+			"title" : "iOS restore in verbose mode",
+			"date" : "2.3.18",
+			"desc" : "Booting Restore OS in verbose mode for fun and profit",
+			"picture" : "resources/verbose-restore.jpg",
+			"link" : "verbose-restore"
+		},
+		{
+			"title" : "Enabling debug-uarts on DFU-like iBoot",
+			"date" : "18.1.18",
+			"desc" : "Enabling additional debug UART output using special patch",
+			"picture" : "resources/dfu-uart.png",
+			"link" : "dfu-uart"
+		},
+		{
+			"title" : "Dealing with data protection on iOS 9 + 6 dual boots",
+			"date" : "9.3.17",
+			"desc" : "Technique to overcome the issue when protected volumes created on iOS 9+ do not mount on older OSes",
+			"picture" : "resources/dataprotection.jpg",
+			"link" : "dataprotection"
+		}
+	],
+	"threads" : [
+		{
+			"title" : "Power NVRAM",
+			"date" : "17.8.19",
+			"embedded" : "<blockquote class=\"twitter-tweet\"><p lang=\"en\" dir=\"ltr\">Here is my little thread about Power NVRAM — another persistent key-value storage, located right on PMU chip. Only talking about iBoot context <a href=\"https://t.co/T8lKhYT2gL\">pic.twitter.com/T8lKhYT2gL</a></p>&mdash; Lisa Braun (@nyan_satan) <a href=\"https://twitter.com/nyan_satan/status/1162631189938745345?ref_src=twsrc%5Etfw\">August 17, 2019</a></blockquote>"
+		},
+		{
+			"title" : "Haywire",
+			"date" : "27.7.19",
+			"embedded" : "<blockquote class=\"twitter-tweet\"><p lang=\"en\" dir=\"ltr\">Here is my little thread about Lightning video adapters – also known as Haywire – which are actually computers that feature Apple Secure Boot and run Darwin kernel <a href=\"https://t.co/Vl5S0McWKX\">pic.twitter.com/Vl5S0McWKX</a></p>&mdash; Lisa Braun (@nyan_satan) <a href=\"https://twitter.com/nyan_satan/status/1155148789977636864?ref_src=twsrc%5Etfw\">July 27, 2019</a></blockquote>"
+		},
+		{
+			"title" : "SWD on iOS devices",
+			"date" : "31.1.19",
+			"embedded" : "<blockquote class=\"twitter-tweet\"><p lang=\"en\" dir=\"ltr\">I was planning to keep this knowledge private, but damn it. This is a thread about Apple SWD cables, some things they can do and how to use them <a href=\"https://t.co/nhZO6JPC9T\">pic.twitter.com/nhZO6JPC9T</a></p>&mdash; Lisa Braun (@nyan_satan) <a href=\"https://twitter.com/nyan_satan/status/1090989650280398849?ref_src=twsrc%5Etfw\">January 31, 2019</a></blockquote>"
+		}
+	]
+}

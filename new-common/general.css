@@ -120,6 +120,7 @@ footer {
 	color: white;
 	line-height: 30px;
 	background-color: rgb(0, 0, 51);
+	height: 90px;
 }
 
 img.footer {
@@ -127,3 +128,18 @@ img.footer {
 	width: 40px;
 	margin: 2px;
 }
+
+img.avatar {
+	width: 250px;
+	height: 250px;
+	border-radius: 50%;
+}
+
+div.separator {
+	width: 80%; 
+	height: 1px; 
+	background: #bcbbc1; 
+	overflow: hidden;
+	margin: 40px auto;
+}
+

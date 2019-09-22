@@ -1,9 +1,71 @@
 <html>
-<head>
-</head>
-<link rel="icon" href="https://nyansatan.github.io/apple-touch-icon.png">
-<meta charset="UTF-8">
-<meta name="description" content="iOS dualboot - complete guide"> 
-<meta name="keywords" content="iOS, iOS 6, dualboot, dual boot, guide, tutorial, OS X, downgrade, iBoot, iBSS, iBEC, jailbreak, tfp0, kloader, multi_kloader, RootFS, dmg, HFS, partitioning, GPT, LwVM, ARM"> 
-<meta http-equiv="refresh" content="1; url=https://nyansatan.github.io/dualboot">
+	<head>
+		<link rel="icon" href="apple-touch-icon.png">
+		<link rel="stylesheet" type="text/css" href="new-common/general.css">
+		<link rel="stylesheet" type="text/css" href="new-common/main-page.css">
+
+		<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
+		<meta charset="UTF-8">
+
+		<script type="text/javascript" src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+		<script type="text/javascript" src="js/3rd-party/mustache.min.js"></script>
+		<script type="text/javascript" src="js/index.js"></script>
+
+		<title>Lisa Braun (@nyan_satan)</title>
+	</head>
+
+	<body onload="main()">
+		<div id="main" class="main" hidden>
+			<div class="text">
+				<center>
+					<img id="photo" class="align avatar">
+					<h1 id="name">Lisa Braun</h1>
+					<div class="desc">@nyan_satan</div>
+
+					<div class="p">
+						That's pseudonym, obviously. Love skeuomorphism in Apple's implementation. Interested in Apple Internal software/hardware. Mostly known for the dualboot guide
+					</div>
+
+					<div class="p">
+						This website was made to gather all of my articles, guides and Twitter threads in one place
+					</div>
+				</center>
+
+				<div id="tabs" class="tab-controller">
+					<div id="articles-tab" class="tab" inited=0>
+						Articles
+					</div>
+
+					<div id="threads-tab" class="tab" inited=0>
+						Threads
+					</div>
+				</div>
+
+				<div class="tabs-content">
+					<div id="articles-tab-contents" hidden>
+					</div>
+
+					<div id="threads-tab-contents" hidden>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div id="error" class="main" hidden>
+			<div class="text">
+				<center>
+					<h1>Error occured!</h1>
+					Internal error occured, please contact @nyan_satan
+				</center>
+			</div>
+		</div>
+
+
+		<footer hidden>
+			Lisa Braun, 2019<br>
+			<a href="https://twitter.com/nyan_satan"><img class="footer" src="new-common/twitter.png"></a>
+			<a href="https://github.com/NyanSatan"><img class="footer" src="new-common/github.png"></a>
+			<a href="mailto:nyansatan@icloud.com"><img class="footer" src="new-common/mail.png"></a>
+		</footer>
+	</body>
 </html>
