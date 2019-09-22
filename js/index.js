@@ -101,7 +101,10 @@ function main() {
 				tabs[i].onclick = tabHandler;
 			}
 
-			document.getElementById("articles-tab").click();
+			if (HTMLElement.click)
+		    	document.getElementById("articles-tab").click();
+		    else
+		    	tabHandler({srcElement : document.getElementById("articles-tab")});
 
 		    mainElement.hidden = false;
 		    footerElement.hidden = false;
