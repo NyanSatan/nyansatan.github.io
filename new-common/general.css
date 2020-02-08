@@ -143,3 +143,8 @@ div.separator {
 	margin: 40px auto;
 }
 
+body.dark {
+	background-color: rgb(0, 0, 51);
+	color: white;
+}
+

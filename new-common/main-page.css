@@ -18,6 +18,11 @@ div.tab-active {
 	border-bottom: 3px solid rgb(0, 0, 151);
 }
 
+div.tab-active-dark {
+	color: white;
+	border-color: white;
+}
+
 div.tabs-content {
 	clear: both;
 	padding-top: 15px;
