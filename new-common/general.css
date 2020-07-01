@@ -37,7 +37,7 @@ h1, h3, h4 {
 	margin-top: 3px;
 }
 
-h1 {
+h1, h2 {
 	margin-bottom: 2px;
 }
 
@@ -46,7 +46,7 @@ h3 {
 }
 
 h4 {
-	margin-bottom: 0px;
+	margin-bottom: 3px;
 }
 
 img.cover {
@@ -71,7 +71,7 @@ li {
 	margin-top: 10px;
 }
 
-ul {
+ul, ol {
 	margin-top: 0px;
 	margin-left: -12px;
 }
@@ -148,3 +148,21 @@ body.dark {
 	color: white;
 }
 
+div.table-wrapper {
+	display: block;
+    overflow-x: auto;
+}
+
+table, th, td {
+	border: 1px solid black;
+	border-collapse: collapse;
+}
+
+table {
+	width: 100%;
+}
+
+td, th {
+	padding: 3px;
+	text-align: center;
+}

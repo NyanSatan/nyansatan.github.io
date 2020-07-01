@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+
+        <link rel="icon" href="../apple-touch-icon.png">
+        <link rel="stylesheet" type="text/css" href="../new-common/general.css?v=1">
+
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
+        <meta name="format-detection" content="telephone=no">
+
+        <title>Apple Lightning</title>
+
+    </head>
+
+    <body>
+        <div class="main">
+            <img class="align" src="resources/cover.jpg">
+            <div class="text">
+
+                <h1>Apple Lightning</h1>
+                <div class="desc">Created on 1.7.20</div>
+
+                <div class="p">
+                    Here's my little article about (almost) everything I know about Apple Lightning and related technologies: <b>Tristar</b>, <b>Hydra</b>, <b>HiFive</b>, <b>SDQ</b>, <b>IDBUS</b> and etc. But first a tiny warning...
+                </div>
+
+                <div class="p">
+                    <i>
+                        Read this article on your own <b>risk</b>! The information in this artcile is based on a lot of AppleInternal materials (leaked datasheets, schematics, source codes) I read in a diagonal direction. And of course on my own research too. I have to warn you, the reader, that I have never done such a research before. Thus, this write-up might use incorrect or just weird terms and turn out partially or completely <b>wrong</b>! 
+                    </i>
+                </div>
+
+                <div class="p">
+                    Before going <i>deeper</i>, let's briefly sort out the terms:
+                </div>
+
+                <div class="p">
+                    <h2>What's Lightning?</h2>
+
+                    <img class="align" src="resources/lightning_port_pinout.jpg"><br>
+
+                    <b>Lightning</b> - is a digital interface used in most of the Apple's iOS devices since late 2012. Replaced the old 30-pin connector<br>
+
+                    <br>
+
+                    You can see the female port pinout on the picture above and the connector pinout on the picture below:<br>
+
+                    <img class="align" src="resources/lightning_connector_pinout.jpg"><br>
+
+                    Please pay attention to the fact that in the connector, pins on both sides of connector aren't wired in exact same order. Thus, a host device have to detect orientation of a cable before doing anything else<br>
+                    
+                    <br>
+
+                    Though it's not always applicable. Many Lightning accessories I've played with have mirrored pinouts in their connectors
+                </div>
+
+                <div class="p">
+                    <h2>What're Tristar and Hydra?</h2>
+
+                    <img class="align" src="resources/tristar_logo.png"><br>
+
+                    <b>Tristar</b> - is the integrated circuit embedded in every device shipped with Lightning female port. Basically, it's a MUX:<br>
+
+                    <img class="align" src="resources/tristar_schematic.png">
+
+                    Among many other things, its main purpose is to communicate with Lightning male connector once one was connected - detect orientation and detect <b>Accessory ID</b> and route internal interfaces like USB, UART and SWD accordingly<br>
+
+                    <br>
+
+                    <b>Hydra</b> - is the new variant of Tristar used since iPhone 8/X. The most significant change appears to be a support of wireless charging, but that's to be verified:<br>
+                    
+                    <img class="align" src="resources/hydra_schematic.png"><br>
+
+                    There're 5 major Tristar/Hydra variants known to me:<br>
+
+                    <ul>
+                        <li><b>TI THS7383</b> - first-gen Tristar used in iPad mini 1 and iPad 4</li>
+                        <li><b>NXP CBTL1608A1</b> - first-gen Tristar used in iPhone 5 and iPod touch 5</li>
+                        <li><b>NXP CBTL1609A1</b> - mysterious first-gen Tristar used in iPod nano 7 - <a target="_blank" href="https://www.ifixit.com/Teardown/iPod+Nano+7th+Generation+Teardown/10826#s38931">source</a></li>
+                        <li><b>NXP CBTL1610Ax</b> - second-gen Tristar used since iPhone 5C/5S and apparently everything else that doesn't support wireless charging. There're multiple generations of this one (<b>x</b> - number of generation)</li>
+                        <li><b>NXP CBTL1612Ax</b> - Hydra used since iPhone 8/X and apparently everything else that supports wireless charging (<b>x</b> - number of generation)</li>
+                    </ul>
+
+                    From now on, I'll only use the term <b>Tristar</b>, but keep in mind that it will also mean <b>Hydra</b> as well, as they are very similar in the most of aspects that are gonna be covered in this text
+                </div>
+
+                <div class="p">
+                    <h2>What's HiFive?</h2>
+
+                    <img class="align" src="resources/lightning_connector.svg"><br>
+
+                    <b>HiFive</b> - is Lightning slave, i.e. a male connector. It contains a logical element as well - that chip is known as <b>SN2025</b>/<b>BQ2025</b>
+                </div>
+
+                <div class="p">
+                    <h2>What're SDQ and IDBUS?</h2>
+
+                    <img class="align" src="resources/idbus_little.png"><br>
+
+                    These 2 terms are often referred as kind of synonyms. For convinience, I'll only use term <b>IDBUS</b> from now on, as it seems more correct to me (and that's how this technology called in the THS7383 datasheet)<br>
+
+                    <br>
+
+                    So, <b>IDBUS</b> - is a digital protocol used for negotiations between Tristar and HiFive. Very similar to <a target="_blank" href="https://en.wikipedia.org/wiki/1-Wire">Onewire protocol</a>
+                </div>
+
+                <div class="p">
+                    <h2>Now we can play</h2>
+
+                    Let's sniff the negotiations between Tristar and HiFive. Take a logic analyzer, a Lightning male-to-female passthrough breakout board, some accessory (normal Lightning to USB cable would fit just fine) and of course some device with Lightning port<br>
+
+                    <br>
+
+                    First connect logic analyzer's channels to both <b>ID</b> lines of the breakout (pins 4 and 8) and connect the breakout to the device, but do not connect the accessory just yet:<br>
+
+                    <img class="align" src="resources/setup_1.jpg"><br>
+
+                    Right after that start sampling (any rate from 2 MHz and up should be fine). You'll see something like this:<br>
+
+                    <img class="align" src="resources/id_lines_activity.png"><br>
+
+                    As you can see, Tristar polls each ID line by rotation - one after another. But since we didn't connect any accessory, the polling obviously fails. At some point the device will grow tired of this endless stream of failures and stop it. Meanwhile let's examine what exactly happens while polling:<br>
+
+                    <img class="align" src="resources/polling_explained_1.png"><br>
+
+                    First, we can see a long interval (~1.1 milliseconds) when the level is just high and nothing else is happening:<br>
+
+                    <img class="align" src="resources/charge.png"><br>
+
+                    Apparently that time is used to charge internal HiFive's capacitor - the energy from it will be then used to power-up its internal logic chips<br>
+
+                    <br>
+
+                    What happens next is far more interesting:<br>
+
+                    <img class="align" src="resources/meaningful.png"><br>
+
+                    Obviously, that's some data flowing. But how to interpret it? How to decode it? Let's virtually split it to almost the least least significant parts - to something that I call <b>words</b>:
+
+                    <img class="align" src="resources/meaningful_splitted.png"><br>
+
+                    So basically a <b>word</b> is a combination of <b>fall</b>-<b>rise</b>-<b>fall</b>:<br>
+
+                    <img class="align" src="resources/word_splitted.png"><br>
+
+                    <ul>
+                        <li><span style="color: #158db2;">Meaningful Stage</span> - time interval taken by this stage defines meaning of a word</li>
+                        <li><span style="color: #79b949;">Recovery Stage</span> - time interval which is apparently required for processing the <span style="color: #158db2;">Meaningful Stage</span> on recieving side and/or preparing the next word on sending stage</li>
+                    </ul>
+
+                    Here is a table of known word types with their time intervals for both stages we discussed above (all units are in microseconds):<br>
+
+                    <table>
+                        <tr>
+                            <th></th>
+                            <th colspan="3">Meaningful</th>
+                            <th colspan="2">Recovery</th>
+                        </tr>
+                        <tr>
+                            <th>Word</th>
+                            <th>Min</th>
+                            <th>Typ</th>
+                            <th>Max</th>
+                            <th>Min</th>
+                            <th>Typ</th>
+                        </tr>
+                        <tr>
+                            <td><b>BREAK</b></td>
+                            <td>12</td>
+                            <td>14</td>
+                            <td>16</td>
+                            <td>2.5</td>
+                            <td>4.5</td>
+                        </tr>
+                        <tr>
+                            <td><b>WAKE</b></td>
+                            <td>22</td>
+                            <td>24</td>
+                            <td>27</td>
+                            <td></td>
+                            <td>1100?</td>
+                        </tr>
+                        <tr>
+                            <td><b>ZERO</b></td>
+                            <td>6</td>
+                            <td>7</td>
+                            <td>8</td>
+                            <td></td>
+                            <td>3</td>
+                        </tr>
+                        <tr>
+                            <td><b>ONE</b></td>
+                            <td>1</td>
+                            <td>1.7</td>
+                            <td>2.5</td>
+                            <td></td>
+                            <td>8.5</td>
+                        </tr>
+                        <tr>
+                            <td><b>ZERO with STOP*</b></td>
+                            <td>6</td>
+                            <td>7</td>
+                            <td>8</td>
+                            <td></td>
+                            <td>16</td>
+                        </tr>
+                        <tr>
+                            <td><b>ONE with STOP*</b></td>
+                            <td>1</td>
+                            <td>1.7</td>
+                            <td>2.5</td>
+                            <td></td>
+                            <td>21</td>
+                        </tr>
+                    </table>
+
+                    <br>
+
+                    * - <b>STOP</b> is used when it's a last bit in a byte<br>
+
+                    <br>
+
+                    Using the above table we can now build a simple decoder of the protocol:<br>
+
+                    <img class="align" src="resources/decoded.png"><br>
+
+                    As you can see, the first word a host sends is <b>BREAK</b> - when Tristar wants to send a new request, it always starts with it. Then comes a data stage. Please pay attention to the fact that last (8th) bit of a byte has longer <span style="color: #79b949;">Recovery Stage</span>. When a data stage is over, a host sends another <b>BREAK</b>. Then a slave must send a reply (after at least a 2.5 us delay - see the table). Tristar will wait for around 2.2 ms for a reply. If it's not issued in this time interval, Tristar will try to poll another ID line<br>
+
+                    <br>
+
+                    Now let's examine the data stage on the example above - <span class="cli">0x74 0x00 0x02 0x1f</span>:
+
+                    <ul>
+                        <li><span class="cli">0x74</span> - request/response type. Always even for request, always odd for response (request type + 1)</li>
+                        <li><span class="cli">0x00 0x02</span> - actual data. Can be empty</li>
+                        <li><span class="cli">0x1f</span> - CRC8 of both the request type byte and the whole data (polynomial - 0x31, initial value - 0xff)</li>
+                    </ul>
+
+                    Let's connect some accessory to our setup and see what happens. I'll use Apple's original Lightning to USB cable:<br>
+
+                    <img class="align" src="resources/setup_2.jpg"><br>
+
+                    And here is what appears on IDBUS after a 0x74 request:<br>
+
+                    <img class="align" src="resources/response_0x75.png"><br>
+
+                    HiFive replied! And if you scroll further you'll see a lot of other request/response pairs:<br>
+
+                    <img class="align" src="resources/response_0x79.png"><br>
+
+                    Some requests do not need a response though:
+
+                    <img class="align" src="resources/request_0x84.png"><br>
+                </div>
+
+                <div class="p">
+                    <h2>Interpreting IDBUS requests and responses</h2>
+
+                    The most important IDBUS request is <b>0x74</b> - it is used for two purposes: to tell HiFive enable full current (in case that's supported by an accessory) and to ask it about pin configuration the cable supports and some other metadata<br>
+
+                    <br>
+
+                    Not too much is known about how response 0x75's data is encoded. But some bits were available in a certain old Tristar datasheet:<br>
+
+                    
+                    <table>
+                        <caption>First byte of 0x75 response data</caption>
+                        <tr>
+                            <th>7</th>
+                            <th>6</th>
+                            <th>5</th>
+                            <th>4</th>
+                            <th>3</th>
+                            <th>2</th>
+                            <th>1</th>
+                            <th>0</th>
+                        </tr>
+                        <tr>
+                            <td colspan="2">ACCx</td>
+                            <td colspan="2">Dx</td>
+                            <td colspan="4">DATA[43:40]</td>
+                        </tr>
+                    </table>
+
+                    <br>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <caption>ACCx configuration when ID is found on ID0</caption>
+                            <tr>
+                                <th>ACCx[1:0]</th>
+                                <th>ACC1</th>
+                                <th>ACC2</th>
+                                <th>HOST_RESET</th>
+                            </tr>
+                            <tr>
+                                <td><b>00</b></td>
+                                <td>Hi-Z (IDBUS)</td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                            </tr>
+                            <tr>
+                                <td><b>01</b></td>
+                                <td>UART1_RX</td>
+                                <td>UART1_TX</td>
+                                <td>Hi-Z</td>
+                            </tr>
+                            <tr>
+                                <td><b>10</b></td>
+                                <td>JTAG_DIO</td>
+                                <td>JTAG_CLK</td>
+                                <td>Hi-Z</td>
+                            </tr>
+                            <tr>
+                                <td><b>11</b></td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                                <td>HIGH</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <br>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <caption>ACCx configuration when ID is found on ID1</caption>
+                            <tr>
+                                <th>ACCx[1:0]</th>
+                                <th>ACC1</th>
+                                <th>ACC2</th>
+                                <th>HOST_RESET</th>
+                            </tr>
+                            <tr>
+                                <td><b>00</b></td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z (IDBUS)</td>
+                                <td>Hi-Z</td>
+                            </tr>
+                            <tr>
+                                <td><b>01</b></td>
+                                <td>UART1_RX</td>
+                                <td>UART1_TX</td>
+                                <td>Hi-Z</td>
+                            </tr>
+                            <tr>
+                                <td><b>10</b></td>
+                                <td>JTAG_DIO</td>
+                                <td>JTAG_CLK</td>
+                                <td>Hi-Z</td>
+                            </tr>
+                            <tr>
+                                <td><b>11</b></td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                                <td>HIGH</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <br>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <caption>Dx configuration when ID is found on ID0</caption>
+                            <tr>
+                                <th>Dx[1:0]</th>
+                                <th>DP1</th>
+                                <th>DN1</th>
+                                <th>DP2</th>
+                                <th>DN2</th>
+                            </tr>
+                            <tr>
+                                <td><b>00</b></td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                            </tr>
+                            <tr>
+                                <td><b>01</b></td>
+                                <td>USB0_DP</td>
+                                <td>USB0_DN</td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                            </tr>
+                            <tr>
+                                <td><b>10</b></td>
+                                <td>USB0_DP</td>
+                                <td>USB0_DN</td>
+                                <td>UART1_TX</td>
+                                <td>UART1_RX</td>
+                            </tr>
+                            <tr>
+                                <td><b>11</b></td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <br>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <caption>Dx configuration when ID is found on ID1</caption>
+                            <tr>
+                                <th>Dx[1:0]</th>
+                                <th>DP1</th>
+                                <th>DN1</th>
+                                <th>DP2</th>
+                                <th>DN2</th>
+                            </tr>
+                            <tr>
+                                <td><b>00</b></td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                            </tr>
+                            <tr>
+                                <td><b>01</b></td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                                <td>USB0_DP</td>
+                                <td>USB0_DN</td>
+                            </tr>
+                            <tr>
+                                <td><b>10</b></td>
+                                <td>USB0_DP</td>
+                                <td>USB0_DN</td>
+                                <td>UART1_TX</td>
+                                <td>UART1_RX</td>
+                            </tr>
+                            <tr>
+                                <td><b>11</b></td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                                <td>Hi-Z</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <br>
+
+                    Using the tables above let's decode our cable's ID (<span class="cli">10 0C 00 00 00 00</span>) with keeping in mind that ID line was found on ID0 pin:<br>
+
+                    <table>
+                        <caption>First byte of the cable's 0x75 response data</caption>
+                        <tr>
+                            <th>7</th>
+                            <th>6</th>
+                            <th>5</th>
+                            <th>4</th>
+                            <th>3</th>
+                            <th>2</th>
+                            <th>1</th>
+                            <th>0</th>
+                        </tr>
+                        <tr>
+                            <td colspan="2">ACCx</td>
+                            <td colspan="2">Dx</td>
+                            <td colspan="4">DATA[43:40]</td>
+                        </tr>
+                        <tr>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>1</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                        </tr>h
+                    </table>
+    
+                    <br>
+
+                    So, ACCx is <span class="cli">00</span> meaning that ID0 pin will just stick with IDBUS, and Dx is <span class="cli">01</span> meaning that DP1/DN1 pins will be configured as USB0_DP/USB0_DN. Just what we expected from a standard USB cable<br>
+
+                    <br>
+
+                    Now let's sniff something more interesting:
+
+                    <table>
+                        <tr>
+                            <th>Accessory</th>
+                            <th>ID (HOSTID = 1)</th>
+                        </tr>
+                        <tr>
+                            <td>DCSD</td>
+                            <td>20 00 00 00 00 00</td>
+                        </tr>
+                        <tr>
+                            <td>KongSWD (no Astris running)</td>
+                            <td>20 02 00 00 00 00</td>
+                        </tr>
+                        <tr>
+                            <td>KongSWD (with Astris running)</td>
+                            <td>A0 00 00 00 00 00</td>
+                        </tr>
+                        <tr>
+                            <td>KanziSWD (no Astris running)</td>
+                            <td>20 0E 00 00 00 00</td>
+                        </tr>
+                        <tr>
+                            <td>KanziSWD (with Astris running)</td>
+                            <td>A0 0C 00 00 00 00</td>
+                        </tr>
+                        <tr>
+                            <td>Haywire (HDMI)</td>
+                            <td>0B F0 00 00 00 00</td>
+                        </tr>
+                        <tr>
+                            <td>UART Charge</td>
+                            <td>20 00 10 00 00 00</td>
+                        </tr>
+                        <tr>
+                            <td>Lightning to 3.5 mm/EarPods with Lightning</td>
+                            <td>04 F1 00 00 00 00</td>
+                        </tr>
+                    </table>
+
+                    <br>
+
+                    Here's a full (?) list of IDBUS requests provided by <a target="_blank" href="https://twitter.com/spbdimka/status/1118597972760125440/photo/1">@spbdimka</a>:<br>
+
+                    <img class="align" src="resources/idbus_full_list.jpg">
+
+                    <div class="separator"></div>
+
+                    <b>Tip #1</b>: you can easily get accessory's properties including its ID using <b>accctl</b>:
+                    
+                    <img class="align" src="resources/accctl.png"><br>
+
+                    That's an Apple's internal utility shipped with NonUI/InternalUI builds. But you can easily run it on any jailbroken device<br>
+
+                    <br>
+
+                    <b>Tip #2</b>: you can easily get cable's pin configuration with diags:
+
+                    <p class="cli">
+                        tristar -p
+                    </p>
+                    
+                    <img class="align" src="resources/tristar-p.png"><br>
+
+                    Please note that this command is only available on iOS 7+ diags<br>
+
+                    <br>
+
+                    <b>Tip #3</b>: you can easily track 0x74/0x75 requests/responses generated by SWD-probes by setting <span class="cli">debug</span> env var to 3:
+
+                    <p class="cli">
+                        astrisctl setenv debug 3
+                    </p>
+                    
+                    Then, on cable's virtual COM you'll see something like this:<br>
+
+                    <img class="align" src="resources/swd_debug.png"><br>
+
+
+                    <h4>HOSTID</h4>
+
+                    In one of the tables above you could see a mention of a thing called <b>HOSTID</b>. It's a 16-bit value carried in a 0x74 request. It appears that it might affect to a response HiFive will reply with. At least, if you set it to invalid value (yes, it's possible with diags), HiFive might stop working with it:<br>
+
+                    <img class="align" src="resources/kanzi_invalid_sysid.png"><br>
+
+                    Though there's an environmental variable called <span class="cli">disableIdCheck</span> in KongSWD/KanziSWD' firmware you can set to make your probe ignore invalid HOSTID<br>
+
+                    <div class="separator"></div>
+                        <b>Important note</b>: Kong and Kanzi do not feature HiFive as a dedicated unreprogrammable chip. Instead these accessories emulate it using microcontroller and/or FPGA unit, thus easily updatable/reprogrammable
+                    <div class="separator"></div>
+
+
+                    <h4>WAKE</h4>
+
+                    In the table of Accessory IDs you could see above you could notice that Kong and Kanzi send different responses depending on whether Astris (AppleInternal software designed for debugging with SWD-probes) is launched or not. If you decode those responses using the tables above, you'll find out that when Astris is not launched, a probe will act just like DCSD - USB on D1 and debug UART on D2 lines. But when the debugging software is running, ACCID lines are switched to SWD<br>
+
+                    <br>
+
+                    But what if we want to launch Astris after a probe was already connected to a device? What will a cable do? How will it switch ACC lines to SWD? That's where <b>WAKE</b> breaks into the game! HiFive (or a device that emulates it) can initiate <b>WAKE</b> and IDBUS enumeration process will start again - Tristar will send 0x74 request, Kong/Kanzi will reply with new ID, Tristar will acknowledge that and route ACC lines to internal SWD lines (SoC must have Development fusing or be demoted for SWD to actually work, of course)<br>
+
+                    <img class="align" src="resources/kanzi_reset_id_response.png">
+
+
+                    <h4>Power Handshakes</h4>
+
+                    The last thing I'm going to cover in this chapter is Power Handshakes. That's an algorithm based on IDBUS requests/responses that kernel Tristar drivers use before allowing charging from an accessory<br>
+
+                    <br>
+
+                    When a Lightning cable is just lying somewhere connected to a charger/computer, but not connected to a device, HiFive limits current on the PWR to a really small value (around 10-15 mA according to my measurements). To enable full current, 0x74 request must be issued by Tristar and processed by HiFive. For SecureROM/iBoot that's enough, but when a kernel is booted additional steps are to be made:
+
+                    <ol>
+                        <li>Tristar issues 2 0x70 requests</li>
+                        <li>As soon as the second one is processed by HiFive and a reply is sent, it disables current at all for around 20 milliseconds</li>
+                        <li>After this time is elapsed, Tristar issues another 0x70 request but with 0x80 in its data. HiFive processes it and replies</li>
+                        <li>At this point kernel driver responsible for Tristar should allow charging</li>
+                    </ol>
+
+                    <i>
+                        <b>Important note</b>: this is the part I know the least. And this is one of the parts I mostly reversed myself. Thus, be careful with this information
+                    </i>
+                </div>
+
+                <div class="p">
+                    <h2>Few words about ESN and Tristar I2C interface</h2>
+
+                    Another feature of Tristar I'd like to tell about is ESN. ESN is a little blob that Tristar stores in its EEPROM (on <b>CBTL1610A2</b> and later). It can be retrieved over IDBUS using Serial Number Reader cable (or Kanzi, they are basically the same thing, except for a different USB PID and a little bit different enclosure)<br>
+
+                    <br>
+
+                    In simple words, by sending this blob to <b>ttrs.apple.com</b>, you can get device's serial number. This mechanism is used by Apple Store/Apple Premium Reseller' staff to retrieve SN from dead devices (considering Tristar is still alive though):
+
+                    <img class="align" src="resources/snr_app.png"><br>
+
+                    The things that are happening on IDBUS while retrieving ESN were already documented by <b>@spbdimka</b>:<br>
+
+                    <center>
+                        <blockquote class="twitter-tweet"><p lang="en" dir="ltr">Example of Tristar CRAM exchange <a href="https://twitter.com/hashtag/appleinternal?src=hash&amp;ref_src=twsrc%5Etfw">#appleinternal</a> <a href="https://t.co/x9ffWWTlAb">pic.twitter.com/x9ffWWTlAb</a></p>&mdash; Nazurbek Kamazov (@spbdimka) <a href="https://twitter.com/spbdimka/status/1118601503881797633?ref_src=twsrc%5Etfw">April 17, 2019</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+                    </center><br>
+
+
+                    <h4>Provisioning</h4>
+
+                    The procedure of "flashing" ESN to Tristar is called <b>provisioning</b>. Provisioning is done using <b>diags</b> on the device side and using <b><a target="_blank" href="https://github.com/meylj/HelloWorld/blob/master/EzLink/EzLink%20Specification.pdf">EzLink</a></b> on the host side and takes 3 steps<br>
+
+                    <br>
+
+                    You can check provisioning status using diags:<br>
+
+                    <p class="cli">
+                        tristar --prov_stat
+                    </p>
+
+                    <img class="align" src="resources/diags_prov_stat.png"><br>
+
+                    ...and retrieve ESN as well:<br>
+
+                    <p class="cli">
+                        tristar --esn
+                    </p>
+
+                    <img class="align" src="resources/diags_esn.png"><br>
+
+                    By the way, diags generally has rich set of Tristar commands (available since iOS 7):<br>
+
+                    <img class="align" src="resources/diags_tristar_help.png"><br>
+
+
+                    <h4>Tristar I2C</h4>
+
+                    Tristar is available on I2C-bus (address 0x34 - for writing, 0x35 - for reading). That's how diags and kernel drivers communicate with it<br>
+
+                    <br>
+
+                    Not much is <i>publicly</i> known about the registers. A lot of information about register map itself can be obtained from the leaked iBoot source code (for THS7383 (appears to be backwards compatible with CBTL1608) and CBTL1610 only), but not much about what to write to them to achieve some interesting results<br>
+
+                    <br>
+
+                    Another source of knowledge is diags' Tristar module (easily extractable over SWD while it's running). For example, I did manage to reverse algorithms of reading provisioning state and ESN. I then implemented these as an addition to my iBoot payload, <b>Lina</b>:<br>
+
+                    <br>
+
+                    <img class="align" src="resources/lina_esn.png"><br>
+
+                    I tried to reverse ESN writing algorithm as well, but failed - the mechanism was too complex for my skills. The code snippets from Lina though are available <a target="_blank" href="https://gist.github.com/NyanSatan/128ad7b352469f64294925499224d5fd">here</a>
+                </div>
+
+                <div class="p">
+                    <h2>Tristar electric characteristics</h2>
+
+                    Tristar itself is powered up from a 1.8V source. Lines used for IDBUS are 3.0V-tolerant according to my oscilloscope:<br>
+
+                    <img class="align" src="resources/oscilloscope_sniff.png"><br>
+
+                    So, better do not try to interact with IDBUS with 5V-tolerant devices like certain models of Arduino without a level shifter
+                </div>
+
+                <div class="p">
+                    <h2>Credits</h2>
+
+                    <b>@key2fr</b>, <b>@_L1ngL1ng_</b>, <b>@spbdimka</b>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            john, 2020<br>
+            <a href="https://twitter.com/nyan_satan"><img class="footer" src="../new-common/twitter.png"></a>
+            <a href="https://github.com/NyanSatan"><img class="footer" src="../new-common/github.png"></a>
+            <a href="mailto:nyansatan@icloud.com"><img class="footer" src="../new-common/mail.png"></a>
+        </footer>
+    </body>
+
+</html>

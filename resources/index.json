@@ -1,5 +1,5 @@
 {
-	"photo" : "resources/photo.jpg",
+	"photo" : "resources/photo.png",
 	"posts" : [
 		{
 			"title" : "iOS dualboot guide",
@@ -7,6 +7,13 @@
 			"desc" : "(Almost) complete dualboot guide for 32-bit iOS devices",
 			"picture" : "resources/dualboot.jpg",
 			"link" : "dualboot"
+		},
+		{
+			"title" : "Apple Lightning",
+			"date" : "1.7.20",
+			"desc" : "(Almost) everything I know about Tristar, HiFive, SDQ, IDBUS, etc.",
+			"picture" : "lightning/resources/cover.jpg",
+			"link" : "lightning"
 		},
 		{
 			"title" : "Accessing Power NVRAM using iBoot",
