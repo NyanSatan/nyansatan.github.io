@@ -81,7 +81,7 @@ p.cli {
 	font-size: 15px;
 	background-color: rgb(0, 0, 51);
 	color: white;
-	font-family: Menlo;
+	font-family: Menlo, Consolas;
 	white-space: nowrap;
 	padding: 8px;
 	margin-top: 2px;
@@ -95,7 +95,7 @@ span.cli {
 	color: white;
 	padding: 2px;
 	border-radius: 5px;
-	font-family: Menlo;
+	font-family: Menlo, Consolas;
 	word-wrap: break-word;
 }
 

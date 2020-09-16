@@ -67,6 +67,11 @@
 	],
 	"threads" : [
 		{
+			"title" : "KongSWD 1st-gen repair",
+			"date" : "5.7.20",
+			"embedded" : "<blockquote class=\"twitter-tweet\"><p lang=\"en\" dir=\"ltr\">As promised, here’s my little thread about my experience of repairing 1st-gen KongSWD (all-white)<a href=\"https://t.co/6356FbX162\">https://t.co/6356FbX162</a></p>&mdash; john (@nyan_satan) <a href=\"https://twitter.com/nyan_satan/status/1279789064930148352?ref_src=twsrc%5Etfw\">July 5, 2020</a></blockquote> <script async src=\"https://platform.twitter.com/widgets.js\" charset=\"utf-8\"></script>"
+		},
+		{
 			"title" : "Image3 bugs",
 			"date" : "5.2.20",
 			"embedded" : "<blockquote class=\"twitter-tweet\"><p lang=\"en\" dir=\"ltr\">Here is my little thread about bugs I’ve found in Image3 parsers of various SecureROMs (well, A4 and A6)<br><br>None of them are exploitable, but all of them can cause a crash and/or denial-of-service<br><br>Why am I posting this? Just for lulz and from hopelessness <a href=\"https://t.co/qOT0IcdzUh\">https://t.co/qOT0IcdzUh</a> <a href=\"https://t.co/S5qSG1s8xg\">pic.twitter.com/S5qSG1s8xg</a></p>&mdash; john (@nyan_satan) <a href=\"https://twitter.com/nyan_satan/status/1225106425531322370?ref_src=twsrc%5Etfw\">February 5, 2020</a></blockquote>"
