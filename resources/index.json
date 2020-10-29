@@ -9,9 +9,16 @@
 			"link" : "dualboot"
 		},
 		{
+			"title" : "Apple Lightning (cont.) - serial number reading",
+			"date" : "29.10.20",
+			"desc" : "(Almost) everything I know about how Kanzi/SNR cables read serial numbers from dead devices",
+			"picture" : "lightning-snr/resources/cover.jpg",
+			"link" : "lightning-snr"
+		},
+		{
 			"title" : "Apple Lightning",
 			"date" : "1.7.20",
-			"desc" : "(Almost) everything I know about Tristar, HiFive, SDQ, IDBUS, etc.",
+			"desc" : "(Almost) everything I know about Tristar, HiFive, SDQ, IDBUS and etc.",
 			"picture" : "lightning/resources/cover.jpg",
 			"link" : "lightning"
 		},

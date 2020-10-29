@@ -1,6 +1,6 @@
-Origin: Lisa Braun's repository
-Label: Lisa Braun
-Version: 21
+Origin: john's repository
+Label: john
+Version: 22
 Architectures: iphoneos-arm
 Components: main
 Description: Repository with Way Out and dualbootstuff. Use these tools on your own risk

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+
+        <style>
+            span.ids {
+                font-family: Menlo, Consolas;
+                font-size: 15px;
+            }
+
+            span.idbus_payload {
+                color: greenyellow;
+            }
+
+            span.esn {
+                color: rgb(226, 37, 226);
+            }
+
+            span.challenge {
+                color: rgb(37, 198, 226);
+            }
+
+            span.keyset {
+                color: rgb(221, 206, 0);
+            }
+
+            span.verifier {
+                color: rgb(226, 121, 0);
+            }
+        </style>
+
+        <link rel="icon" href="../apple-touch-icon.png">
+        <link rel="stylesheet" type="text/css" href="../new-common/general.css?v=2">
+
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
+        <meta name="format-detection" content="telephone=no">
+
+        <title>Apple Lightning - SNR</title>
+
+    </head>
+
+    <body>
+        <div class="main">
+            <img class="align" src="resources/cover.jpg">
+            <div class="text">
+                <h1>Apple Lightning (cont.) - serial number reading</h1>
+                <div class="desc">Created on 29.10.20</div>
+
+                <div class="p">
+                    Here is my little article about (almost) everything I know about how serial number reading from <i>dead</i> devices is done. But first a tiny warning...
+                </div>
+
+                <div class="p">
+                    <i>
+                        Read this article on your own <b>risk</b>! The information in this artcile is based on a lot of AppleInternal materials (leaked apps, magic cables and etc.). And of course on my own research and RE too. This write-up might use incorrect or just weird terms and turn out partially or completely <b>wrong</b>!
+                    </i>
+                </div>
+
+                <div class="p">
+                    <h2>Why am I talking about this?</h2>
+
+                    Recently several people contacted me with an issue where their <b>Serial Number Reader</b> cables randomly stopped working:
+
+                    <img class="align" src="resources/snr_failure.png"><br>
+
+                    So in order to try to help them, I had to reverse engineer (just a little bit) Serial Number Reader application, sniff some HTTP-requests and try to understand how it's supposed to work and why it doesn't at all in some cases<br>
+                    
+                    <br>
+
+                    Resulting research seems quite interesting to me, so I'm sharing it with anyone who might be interested in it as well<br>
+
+                    <br>
+
+                    <i>Please note, that since it's a client-server interaction that's discussed here, we can know for sure only what happens on the client side. What about the server side, we can only guess - successfully or not</i>
+                </div>
+
+                <br>
+
+                <div class="p">
+                    First of all, let's sort out the major terms briefly:
+                </div>
+
+                <div class="p">
+                    <h2>What is Serial Number Reader cable?</h2>
+
+                    <img class="align" src="resources/flamingo_snr.jpg"><br>
+                    <div class="pic-desc">Flamingo-styled Serial Number Reader cable</div><br>
+
+                    It's a cable that's used by Apple and some of their resellers to get serial number from a <i>dead</i> iOS-device (given its <b>Tristar</b>/<b>Hydra</b> is still alive)<br>
+                    
+                    <br>
+
+                    Based on the <b>Kanzi</b> cable. It's not even <i>based</i>, it <i>is</i> Kanzi. Just with different USB Product ID (<b>0x1621</b> on Kanzi vs. <b>0x1624</b> on SNR) and a little bit different housing (lacks the beautiful artwork on the front, blocks access to the female <b>Lightning</b> and <b>ARM Cortex Debug</b> 10-pin connector, which isn't even soldered to the board). Firmware is same<br>
+
+                    <br>
+
+                    Also known as just <b>SNR</b> and <b>Nova Cable</b>
+                </div>
+
+                <div class="p">
+                    <h2>What is Kanzi cable?</h2>
+
+                    <img class="align" src="resources/kanzi.jpg"><br>
+                    <div class="pic-desc">Notice the external debugging port and the female Lightning</div><br>
+
+                    It's a cable that's used by Apple's own engineers to debug various hardware (mainly iOS-devices, of course) with <b>SWD</b> (<b>S</b>erial <b>W</b>ire <b>D</b>ebug - <b>JTAG</b> for ARM cores)<br>
+
+                    <br>
+
+                    Yes, you can use Kanzi to read serial numbers and use SNR to debug iPhones (since it's the same hardware and software). Requires little patches in <b>Serial Number Reader.app</b> (macOS app designed to make use of a SNR - that's the one to be RE'd) and <b>astrisprobed</b> (piece of Astris - debugger software designed to make use of Apple's SWD-probes, Kanzi is one of them) respectively<br>
+
+                    <br>
+
+                    Based on <b>STM32F407IGH6</b> MCU (ARM Cortex-M4, up to 168 MHz)<br>
+
+                    <br>
+
+                    Also known as <b>KanziSWD</b><br>    
+                </div>
+
+                <div class="p">
+                    <h2>What else should you know?</h2>
+
+                    There're way too many aspects of Kanzi/SNR to be described in this little article, so we will only focus on those several of them we'll need later:<br>
+
+                    <ol>
+                        <li>
+                            <b>Environment variables</b> - Kanzi/SNR can store some persistent data (across reboots) that defines its behavior. Accessible via <span class="cli">astrisctl</span> tool:<br>
+
+                            <img class="align" src="resources/astrisctl_env.png"><br>
+
+                            There are pretty many of those, but the most useful of them is <span class="cli">debug</span>. Setting certain bits of this var unlocks additional debug output to cable's <b>VCOM</b> (<b>V</b>irtual <b>COM</b> port):<br>
+                            
+                            <img class="align" src="resources/kanzi_debug.png">
+                            
+                            ...and even some features like diagnostics
+                        </li>
+
+                        <li>
+                            <b>Relays</b> - similar to env vars, but used to send commands, read some indicators and in some other ways control behavior of a cable. Non-persistent. Just like the env vars, accessible via <span class="cli">astrisctl</span>:<br>
+
+                            <img class="align" src="resources/astrisctl_relays.png"><br>
+                            <div class="pic-desc">You can also see diags functionality in action here</div><br>
+                        </li>
+
+                        <li>
+                            <b>I2C</b> - Kanzi's MCU communicates with various other hardware like DAC, EEPROMs, Tristar (yes, it has Tristar - appears to be <b>TI THS7383</b>) and Mozart (that's the root of the problem by the way - details below) over I2C interface. Two I2C devices are available over USB from outside:<br>
+
+                            <ul>
+                                <li>
+                                    <b>NVRAM EEPROM</b> (address 0x56/0x57) - stores env vars
+                                </li>
+
+                                <li>
+                                    <b>Buffer</b> (address 0xAE/0xAF) - used for a data exchange between <b>KFL</b> (<b>K</b>anzi <b>F</b>raud <b>L</b>ibrary - part of Serial Number Reader.app used to interact with Kanzi/SNR). Most likely it's kind of a pseudo-device
+                                </li>
+                            </ul>
+                            
+                            <br>
+
+                            Accessible over <b>Astris</b>:
+
+                            <img class="align" src="resources/astris_i2c.png"><br>
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="p">
+                    <h2>The algorithm</h2>
+
+                    All the information below is based on the RE of Serial Number Reader.app (its binary is fully symbolicated, by the way, and this is very convinient) and sniffing a traffic between my machine and <span class="cli">ttrs.apple.com</span> (I'm using a program called <b>Charles</b> for this purpose)<br>
+
+                    <br>
+
+                    <i>To understand what's going on below, you might want to read <a target="_blank" href="/lightning">this</a> first</i>
+                </div>
+
+                <div class="p">
+                    <h4>Reading ESN</h4>
+
+                    First of all, Serial Number Reader.app reads <b>ESN</b> (<b>E</b>lectronic <b>S</b>erial <b>N</b>umber). Here is how it's done:
+
+                    <ol>
+                        <li>
+                            Write <span class="cli">"\x02Get ESN"</span> to the data exchange buffer
+                        </li>
+
+                        <li>
+                            <i>Write 0x1 to <span class="cli">authcmd</span> relay and wait until it becomes 0x0 again</i> - from now on we will name this procedure - writing a number to <span class="cli">authcmd</span> relay and waiting - like this: <b>to execute command</b>
+                        </li>
+
+                        <li>
+                            Read 16 bytes from the data exchange buffer. First 8 bytes are an <b>ESN</b>
+                        </li>
+                    </ol>
+
+                    Now let's see what happens on IDBUS meanwhile:
+
+                    <ol>
+                        <li>
+                            <b>WAKE</b> is initiated by a cable:
+
+                            <p class="cli">
+                                74 <span class="idbus_payload">00 02</span> 1f -> 75 <span class="idbus_payload">60 00 00 00 00 00</span> df
+                            </p>
+                            <div class="pic-desc">
+                                From now on data portions of IDBUS requests/responses are <span class="cli"><span class="idbus_payload">colored</span></span> for convinience
+                            </div>
+                            
+                            <br>
+
+                            If we decode the response, we'll see that such sequence must enable debug UART on ACC lines. What?! Well, the decoding tables from my previous article were grabbed from <b>TI THS7383</b> Tristar datasheet, which was one of the first of them. On Tristar 2 and Hydra this sequence enables SNR mode
+                        </li>
+
+                        <li>
+                            Now, it sends <span class="cli">"\x02Get ESN"</span>:
+
+                            <p class="cli">
+                                7e <span class="idbus_payload">09</span> aa -> 7d <span class="idbus_payload">02 47 65 74 20 45 53 4e 00</span> fb
+                            </p>
+                        </li>
+
+                        <li>
+                            Finally, it receives ESN (first 8 bytes, in reversed order) along with something else (later 8 bytes):
+
+                            <p class="cli">
+                                7c <span class="esn">R E D A C T E D</span> <span class="idbus_payload">R E D A C T E D</span> aa -> 7f 8c 
+                            </p>
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="p">
+                    <h4>First request</h4>
+
+                    After acquiring ESN it sends it to Apple:
+
+                    <p class="cli">
+                        GET /TRISTAR/FGSN?VERSION=1&DEVICE_ID=<span class="esn">B64_ESN_REDACTED</span> HTTP/1.1<br>
+                        Host: ttrs.apple.com<br>
+                        Accept: */*<br>
+                        Accept-Language: en-us<br>
+                        Connection: keep-alive<br>
+                        Accept-Encoding: gzip, deflate<br>
+                        User-Agent: Serial%20Number%20Reader/105 CFNetwork/978.3 Darwin/18.7.0 (x86_64)
+                    </p>
+
+                    <div class="pic-desc">
+                        <span class="esn">ESN</span> is encoded as Base64 here
+                    </div>
+
+                    <br>
+
+                    Response is a JSON:
+
+                    <p class="cli">
+                        {<br>
+                            &nbsp;"SESSION_ID": "9112f805-74da7718-0175-6609296b-42de",<br>
+                            &nbsp;"MESSAGE": "ok",<br>
+                            &nbsp;"STATUS": "200",<br>
+                            &nbsp;"KEYSET_ID": "<span class="keyset">2</span>",<br>
+                            &nbsp;"CHALLENGE": "<span class="challenge">B64_CHALLENGE_REDACTED</span>",<br>
+                            &nbsp;"DEVICE_ID": "<span class="esn">B64_ESN_REDACTED</span>",<br>
+                            &nbsp;"VERSION": "1"<br>
+                        }
+                    </p>
+
+                    The most meaningful fields here are <span class="ids challenge">CHALLENGE</span> (8 bytes blob) and <span class="ids keyset">KEYSET_ID</span> (an integer in range of 1 and 3)
+                </div>
+
+                <div class="p">
+                    <h4>Get verifier</h4>
+
+                    The next step is to get something called <span class="ids verifier">VERIFIER</span> (another 8 bytes blob)<br>
+
+                    <br>
+
+                    To accomplish this task we have to do the same thing like in the step 1 (reading ESN), but instead of <span class="cli">"\x02Get ESN"</span> we need to send the following structure:
+                    
+                    <p class="cli">
+                        struct {<br>
+                            &nbsp;uint8_t keyset; //subtract 1 from the server one!<br>
+                            &nbsp;uint64_t challenge;<br>
+                        }
+                    </p>
+
+                    Where <span class="cli">keyset</span> is the <span class="ids keyset">KEYSET_ID</span> from the server response with 1 subtracted and <span class="cli">challenge</span> is <span class="ids challenge">CHALLENGE</span> from the same entity<br>
+
+                    <br>
+
+                    As result, we can see this on IDBUS:
+
+                    <p class="cli">
+                        7e <span class="idbus_payload">09</span> aa -> 7d <span class="keyset">02</span> <span class="challenge">R E D A C T E D</span> d3<br>
+                        7c <span class="esn">R E D A C T E D</span> <span class="verifier">R E D A C T E D</span> 67 -> 7f 8c 
+                    </p>
+
+                    The latter 8 bytes are our <span class="ids verifier">VERIFIER</span>
+                </div>
+
+                <div class="p">
+                    <h4>Compose a final request's payload</h4>
+
+                    This step is quite simple - add the <span class="ids verifier">VERIFIER</span> to the previous request's response body. Also remove <b>MESSAGE</b>, <b>STATUS</b> and <b>VERSION</b> from there. So in the end it looks like this:
+
+                    <p class="cli">
+                        {<br>
+                            &nbsp;"KEYSET_ID":"<span class="keyset">2</span>",<br>
+                            &nbsp;"CHALLENGE":"<span class="challenge">B64_CHALLENGE_REDACTED</span>",<br>
+                            &nbsp;"VERIFIER":"<span class="verifier">B64_VERIFIER_REDACTED</span>",<br>
+                            &nbsp;"DEVICE_ID":"<span class="esn">B64_ESN_REDACTED</span>",<br>
+                            &nbsp;"SESSION_ID":"9112f805-74da7718-0175-6609296b-42de"<br>
+                        }
+                    </p>
+                </div>
+
+                <div class="p">
+                    <h4>Sign the payload</h4>
+
+                    Everything described above can be done with your own hardware. Apple couldn't let this happen, so they added another layer of protection to this mechanism - they sign the final request. Here is how it's done:<br>
+
+                    <ol>
+                        <li>
+                            Take a SHA1 hash of the JSON payload we prepared in the previous step
+                        </li>
+
+                        <li>
+                            Write that hash to the exchange buffer
+                        </li>
+
+                        <li>
+                            Execute the command 0x4, this will make it remember the hash
+                        </li>
+
+                        <li>
+                            Execute the command 0x5, then read 2 bytes from the exchange buffer - this is a length of the signature, must always be 128
+                        </li>
+
+                        <li>
+                            Execute the command 0x6, then read 128 bytes from the exchange buffer - this is our signature
+                        </li>
+                    </ol>
+
+                    Now we need to read a public certificate:
+
+                    <ol>
+                        <li>
+                            Execute the command 0x2, then read 4 bytes from the exchange buffer - this is a length of the certificate
+                        </li>
+
+                        <li>
+                            Given the certificate length, make a loop that will read the certificate itself with portions of 128 bytes: write <span class="cli">(offset & 0xFF00) >> 8</span> (basically <span class="cli">offset / 128</span>) as 32-bit integer to the exchange buffer, execute the command 0x3 - this sets current offset for reading, and read from the exchange buffer - this is the requested portion of the public certificate
+                        </li>
+                    </ol>
+
+                    Here is how it looks like:<br>
+                    <img class="align" src="resources/cert.png"><br>
+                </div>
+
+                <div class="p">
+                    <h4>Compose and send the final request</h4>
+
+                    Time to compose everything we gathered in the previous steps in a single request and finally get our SN. Compose a POST request with a form data: with the following fields (all values encoded as Base64):
+
+                    <ul>
+                        <li>
+                            <b>B64_PAYLOAD</b> - the JSON we prepared before
+                        </li>
+
+                        <li>
+                            <b>B64_SIGNATURE</b> - the signature
+                        </li>
+
+                        <li>
+                            <b>B64_CERTIFICATE</b> - the certificate
+                        </li>
+                    </ul>
+
+                    Here is how it might look like:
+
+                    <p class="cli">
+                        POST /TRISTAR/FGSN?VERSION=1 HTTP/1.1<br>
+                        Host: ttrs.apple.com<br>
+                        Content-Type: application/x-www-form-urlencoded<br>
+                        Connection: keep-alive<br>
+                        Accept: */*<br>
+                        User-Agent: Serial%20Number%20Reader/105 CFNetwork/978.3 Darwin/18.7.0 (x86_64)<br>
+                        Accept-Language: en-us<br>
+                        Accept-Encoding: gzip, deflate<br>
+                        Content-Length: 1696<br>
+                        <br>
+                        B64_PAYLOAD=REDACTED<br>
+                        B64_SIGNATURE=REDACTED&<br>
+                        B64_CERTIFICATE=REDACTED
+                    </p>
+
+                    And here is what we receive:
+
+                    <p class="cli">
+                        {<br>
+                            &nbsp;"SESSION_ID": "9112f805-74da7718-0175-6609296b-42de",<br>
+                            &nbsp;"MESSAGE": "ok",<br>
+                            &nbsp;"STATUS": "200",<br>
+                            &nbsp;"VERSION": "1",<br>
+                            &nbsp;"FGSN": "SN_REDACTED"<br>
+                        }<br>
+                    </p>
+
+                    The serial number is in the <b>FGSN</b> field
+                </div>
+
+                <div class="p">
+                    <h2>So what can go wrong?</h2>
+
+                    The public certificate can expire, like this one:<br>
+                    <img class="align" src="resources/cert_expired.png"><br>
+
+                    In this case the Apple's server will return code 403 (Forbidden) and the status message will tell you about a signature verification failure<br>
+
+                    <br>
+
+                    According to my information, all the <b>2XXXXX</b> series of cables (and supposedly everything older) and even some of the <b>3XXXXX</b> one (definetely <b>310XXX</b>) have certificates that expired
+                </div>
+
+                <div class="p">
+                    <h4>Can we sign requests with a new certificate?</h4>
+
+                    I suppose not, as this will also require a hash to be signed with a new private key
+                </div>
+
+                <div class="p">
+                    <h4>Can we extract a private key?</h4>
+
+                    That's a very interesting question, indeed. The problem is that main MCU of Kanzi or SNR (which we can fully control) is not in charge of signature generation<br>
+
+                    <br>
+
+                    Instead, it's done via <b>Mozart</b>, which can be talked to via I2C (its address appears to be 0x20/0x21). What it is by its nature is currently unknown. But on some of the previous screenshots in this article you could notice a special diagnostic message:
+
+                    <p class="cli">
+                        authInit:AUTH_DEV_VER = 5 AUTH_FW_VER = 1 AUTH_PRO_MAJ_VER = 2 AUTH_PRO_MIN_VER = 0 AUTH CERT LEN = 908 authSelfTestProcControl: Passed [0xc0]
+                    </p>
+
+                    The <span class="cli">AUTH_FW_VER</span> bit though is telling us that it might be something that runs some sort of firmware
+                </div>
+
+                <div class="p">
+                    <h4>So, nothing to be done?</h4>
+
+                    <b>Mozart</b> doesn't require any auth to sign a hash. So you can theoretically abuse it - I've created a little application that takes advantage of this <i>flaw</i> (is it?) and allows to sign arbitrary hash given a Kanzi or SNR (requires patched <span class="cli">astrisprobed</span> in the current implementation) is connected:<br>
+
+                    <img class="align" src="resources/kanzifraudctl.png"><br>
+
+                    My <i>tests</i> show that Mozart does have some kind of <b>throttling</b>. Well, maybe the tests are just bad:
+
+                    <p class="cli">
+                        while true; do kanzifraudctl 7f2db00ae1cb2a543d65ccf699185b44d6bc5266; done
+                    </p>
+
+                    ...but at some point the procedure begins to take more and more time, and when this time is around 0.52 seconds it stops generating signatures at all:<br>
+                    
+                    <img class="align" src="resources/mozart_throttling.png"><br>
+
+                    If there's any demand for this tool, I'll publish its source code to my GitHub
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            john, 2020<br>
+            <a href="https://twitter.com/nyan_satan"><img class="footer" src="../new-common/twitter.png"></a>
+            <a href="https://github.com/NyanSatan"><img class="footer" src="../new-common/github.png"></a>
+            <a href="mailto:nyansatan@icloud.com"><img class="footer" src="../new-common/mail.png"></a>
+        </footer>
+    </body>
+
+</html>

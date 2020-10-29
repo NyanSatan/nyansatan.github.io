@@ -59,6 +59,14 @@ div.desc {
 	font-size: 20px;
 }
 
+div.pic-desc {
+	font-family: Bellefair;
+	text-align: center;
+	color: gray;
+	font-size: 20px;
+	margin-top: -10px;
+}
+
 div.p {
 	margin: 10px 0px;
 }
