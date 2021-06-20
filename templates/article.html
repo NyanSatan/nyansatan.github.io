@@ -2,7 +2,12 @@
 	<div class="post">
 		<a class="link" href="{{link}}">
 			<h3>{{title}}</h3>
-			<div class="desc">Posted on {{date}}</div>
+			<div class="desc">
+				Posted on {{date}}
+				{{#pinned}}
+					: pinned
+				{{/pinned}}
+			</div>
 			<img class="align post" src="{{picture}}">
 			{{desc}}
 		</a>

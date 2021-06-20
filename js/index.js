@@ -1,12 +1,11 @@
 function fillTab(tab, tabContents) {
-
 	if (!parsed) {
 		tabContents.innerHTML = "Error loading tab";
 		return;
 	}
 
 	if (tab.id == "articles-tab") {
-		var template = "templates/article.html";
+		var template = "templates/article.html?v=1";
 	} else if (tab.id == "threads-tab") {
 		var template = "templates/thread.html";
 		var twttrWidgetLoad = true;
@@ -20,13 +19,11 @@ function fillTab(tab, tabContents) {
 	xhr.open("GET", template, true);
 	xhr.send();
 	xhr.onreadystatechange = function() {
-
 		if (xhr.readyState != 4) return;
 
 		if (xhr.status != 200) {
 		    tabContents.innerHTML = "Error loading template";
 		} else {
-
 			var templateText = xhr.responseText;
 			tabContents.innerHTML = Mustache.render(templateText, parsed);
 
@@ -36,14 +33,11 @@ function fillTab(tab, tabContents) {
 				twttr.widgets.load();
 
 		}
-
 	}
-
 }
 
 
 function tabHandler(event) {
-
 	var requestedTab = event.srcElement;
 	var activeTab = document.getElementById("tabs").getElementsByClassName("tab-active")[0];
 
@@ -63,29 +57,25 @@ function tabHandler(event) {
 	if (!requestedTab.inited) {
 		fillTab(requestedTab, requestedTabContents);
 	}
-
 }
 
 var parsed = undefined;
 
 function main() {
-
 	var mainElement = document.getElementById("main");
 	var errorElement = document.getElementById("error");
 	var footerElement = document.getElementsByTagName("footer")[0];
 
 	var xhr = new XMLHttpRequest();
 
-	xhr.open("GET", "resources/index.json?v=4", true);
+	xhr.open("GET", "resources/index.json?v=5", true);
 	xhr.send();
 	xhr.onreadystatechange = function() {
-
 		if (xhr.readyState != 4) return;
 
 		if (xhr.status != 200) {
 		    errorElement.hidden = false;
 		} else {
-
 			try {
 				parsed = JSON.parse(xhr.responseText);
 			} catch (error) {
@@ -116,5 +106,4 @@ function main() {
 	};
 
 	return false;
-
 }
