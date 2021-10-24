@@ -334,7 +334,7 @@
                         </li>
 
                         <li>
-                            Execute the command 0x5, then read 2 bytes from the exchange buffer - this is a length of the signature, must always be 128
+                            Execute the command 0x5, then read 2 bytes from the exchange buffer - this is a length of the signature <b>[UPD: 24/10/21] in big endian</b>, must always be 128
                         </li>
 
                         <li>
@@ -346,11 +346,11 @@
 
                     <ol>
                         <li>
-                            Execute the command 0x2, then read 4 bytes from the exchange buffer - this is a length of the certificate
+                            Execute the command 0x2, then read 4 bytes from the exchange buffer - <s>this is a length of the certificate</s> <b>[UPD: 24/10/21] this is a struct that consists of two big-endian 16-bit integers - the first is length, the the second is offset (returns some garbage for this command). We obviously need to extract the length</b>
                         </li>
 
                         <li>
-                            Given the certificate length, make a loop that will read the certificate itself with portions of 128 bytes: write <span class="cli">(offset & 0xFF00) >> 8</span> (basically <span class="cli">offset / 128</span>) as 32-bit integer to the exchange buffer, execute the command 0x3 - this sets current offset for reading, and read from the exchange buffer - this is the requested portion of the public certificate
+                            Given the certificate length, make a loop that will read the certificate itself with portions of 128 bytes: <s>write <span class="cli">(offset & 0xFF00) >> 8</span> (basically <span class="cli">offset / 128</span>) as 32-bit integer to the exchange buffer, execute the command 0x3 - this sets current offset for reading, and read from the exchange buffer - this is the requested portion of the public certificate</s> <b>[UPD: 24/10/21] write a similar struct as in step 1 with length of (obviously) 128 and your current offset to the exchange buffer, execute the command 0x3 - this makes it extract a portion you requested with the struct, and read from the exchange buffer - this is the actual part of the public certificate</b>
                         </li>
                     </ol>
 
@@ -436,7 +436,7 @@
 
                     <br>
 
-                    Instead, it's done via <b>Mozart</b>, which can be talked to via I2C (its address appears to be 0x20/0x21). What it is by its nature is currently unknown. But on some of the previous screenshots in this article you could notice a special diagnostic message:
+                    Instead, it's done via <b>Mozart</b>, which can be talked to via I2C (its address appears to be 0x20/0x21). <s>What it is by its nature is currently unknown</s> <b>[UPD: 24/10/21] @el1ng0 suggested this might be an MFI chip, and other sources confirmed this</b>. On some of the previous screenshots in this article you could notice a special diagnostic message:
 
                     <p class="cli">
                         authInit:AUTH_DEV_VER = 5 AUTH_FW_VER = 1 AUTH_PRO_MAJ_VER = 2 AUTH_PRO_MIN_VER = 0 AUTH CERT LEN = 908 authSelfTestProcControl: Passed [0xc0]
@@ -468,7 +468,7 @@
         </div>
 
         <footer>
-            john, 2020<br>
+            john, 2020-2021<br>
             <a href="https://twitter.com/nyan_satan"><img class="footer" src="../new-common/twitter.png"></a>
             <a href="https://github.com/NyanSatan"><img class="footer" src="../new-common/github.png"></a>
             <a href="mailto:nyansatan@icloud.com"><img class="footer" src="../new-common/mail.png"></a>
