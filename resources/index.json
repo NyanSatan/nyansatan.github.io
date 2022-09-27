@@ -75,6 +75,11 @@
 	],
 	"threads" : [
 		{
+			"title" : "(Real bad) ruminations about KIS",
+			"date" : "2.7.22",
+			"embedded" : "<blockquote class=\"twitter-tweet\"><p lang=\"en\" dir=\"ltr\">Here is my little thread of real bad ruminations about KIS - Kanzi In System - a debug probe embedded right into a device since A14<br><br>Seriously, read it with great caution, and don’t blindly trust it at all costs! <a href=\"https://t.co/fIxn1h8b6J\">pic.twitter.com/fIxn1h8b6J</a></p>&mdash; john (@nyan_satan) <a href=\"https://twitter.com/nyan_satan/status/1543156112165376000?ref_src=twsrc%5Etfw\">July 2, 2022</a></blockquote> <script async src=\"https://platform.twitter.com/widgets.js\" charset=\"utf-8\"></script>"
+		},
+		{
 			"title" : "Tatsu Auth Debug sniffings",
 			"date" : "15.6.21",
 			"embedded" : "<blockquote class=\"twitter-tweet\"><p lang=\"en\" dir=\"ltr\">Here is another little thread of mine about Tatsu Auth Debug - this time we’ll sniff whatever happens between Astris and the Apple’s server<br><br>As always read on your own risk! <a href=\"https://t.co/6LpUdKhE3s\">pic.twitter.com/6LpUdKhE3s</a></p>&mdash; john (@nyan_satan) <a href=\"https://twitter.com/nyan_satan/status/1404839374202753028?ref_src=twsrc%5Etfw\">June 15, 2021</a></blockquote> <script async src=\"https://platform.twitter.com/widgets.js\" charset=\"utf-8\"></script>"
