@@ -1,0 +1,112 @@
+@font-face {
+	font-family: NotoSans;
+	src: url(fonts/NotoSans-Regular.ttf);
+}
+
+@font-face {
+	font-family: OpenSans;
+	src: url(fonts/OpenSans-Bold.ttf);
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    background: radial-gradient(circle at bottom, #301934, black);
+    background-attachment: fixed;
+}
+
+div.main {
+	margin: auto;
+    color: white;
+	font-family: NotoSans;
+	font-size: 12pt;
+}
+
+div.text {
+    max-width: 800px;
+	margin: auto;
+}
+
+h1, h3, h4 {
+	font-family: OpenSans;
+	margin-top: 3px;
+}
+
+h3 {
+    font-size: 14pt;
+	margin-bottom: 5px;
+}
+
+img.align {
+    max-width: 100%;
+    max-height: 100%;
+    margin-left: auto; 
+    margin-right: auto;
+    display: block;
+    background-size: contain;
+}
+
+img.shadowed {
+    filter: drop-shadow(0px 0px 10px black);
+}
+
+div.layout-container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+div.layout-element {
+    display: inline;
+    flex: 200px;
+    padding: 10px;
+}
+
+img.avatar {
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+}
+
+div.apt {
+    margin: 10px;
+    font-family: OpenSans;
+	font-size: 12pt;
+    height: 36px;
+    line-height: 36px;
+}
+
+img.apt {
+    margin-top: 1px;
+    margin-right: 5px;
+    width: 36px;
+    height: 36px;
+}
+
+img.apt-arrow {
+    height: 20px;
+    width: auto;
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-right: 5px;
+}
+
+a.link {
+    color: inherit;
+	text-decoration: none;
+}
+
+div.desc {
+    color: gray;
+	font-size: 12pt;
+}
+
+footer {
+    height: 65px;
+    font-family: OpenSans;
+    text-align: center;
+    line-height: 30px;
+}

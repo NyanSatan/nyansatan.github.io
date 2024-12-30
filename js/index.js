@@ -1,109 +1,68 @@
+var templates = new Object();
+
 function fillTab(tab, tabContents) {
-	if (!parsed) {
-		tabContents.innerHTML = "Error loading tab";
-		return;
-	}
-
-	if (tab.id == "articles-tab") {
-		var template = "templates/article.html?v=1";
-	} else if (tab.id == "threads-tab") {
-		var template = "templates/thread.html";
-		var twttrWidgetLoad = true;
-	} else {
-		tabContents.innerHTML = "Undefined tab";
-		return;
-	}
-
-	var xhr = new XMLHttpRequest();
-
-	xhr.open("GET", template, true);
-	xhr.send();
-	xhr.onreadystatechange = function() {
-		if (xhr.readyState != 4) return;
-
-		if (xhr.status != 200) {
-		    tabContents.innerHTML = "Error loading template";
-		} else {
-			var templateText = xhr.responseText;
-			tabContents.innerHTML = Mustache.render(templateText, parsed);
-
-			tab.inited = 1;
-
-			if (twttrWidgetLoad)
-				twttr.widgets.load();
-
-		}
-	}
+    tabContents.innerHTML = Mustache.render(templates[tab.map_id], map[tab.map_id]);
+	console.log(templates[tab.map_id]);
+    tab.inited = 1;
 }
-
 
 function tabHandler(event) {
-	var requestedTab = event.srcElement;
-	var activeTab = document.getElementById("tabs").getElementsByClassName("tab-active")[0];
+    var requestedTab = event.srcElement;
+    var activeTab = document.getElementById("tabs").getElementsByClassName("tab-active")[0];
 
-	if (requestedTab == activeTab) 
-		return;
+    if (requestedTab == activeTab) 
+        return;
 
-	if (activeTab) {
-		activeTab.classList.remove("tab-active");
-		document.getElementById(activeTab.id + "-contents").hidden = true;
-	}
+    if (activeTab) {
+        activeTab.classList.remove("tab-active");
+        document.getElementById(activeTab.id + "-contents").hidden = true;
+    }
 
-	requestedTab.classList.add("tab-active");
+    requestedTab.classList.add("tab-active");
 
-	var requestedTabContents = document.getElementById(requestedTab.id + "-contents");
-	requestedTabContents.hidden = false;
+    var requestedTabContents = document.getElementById(requestedTab.id + "-contents");
+    requestedTabContents.hidden = false;
 
-	if (!requestedTab.inited) {
-		fillTab(requestedTab, requestedTabContents);
+    if (!requestedTab.inited) {
+        fillTab(requestedTab, requestedTabContents);
+    }
+}
+
+function templateCallback(xhr, tab, elementId) {
+	if (xhr.readyState != 4) return;
+
+	if (xhr.status == 200) {
+		templates[tab.map_id] = xhr.responseText;
+
+		tab.onclick = tabHandler;
+
+		if (tab.getAttribute("primary")) {
+			tabHandler({srcElement : tab});
+		}
+	} else {
+		alert("Wow, this is unexpected, but we really couldn't load " + key + " template!");
 	}
 }
 
-var parsed = undefined;
-
 function main() {
-	var mainElement = document.getElementById("main");
-	var errorElement = document.getElementById("error");
-	var footerElement = document.getElementsByTagName("footer")[0];
+	var prerendered = document.querySelectorAll(`[prerendered*="1"]`);
 
-	var xhr = new XMLHttpRequest();
+	for (const tab of prerendered) {
+		tab.inited = 1;
+		tab.onclick = tabHandler;
+	}
 
-	xhr.open("GET", "resources/index.json?v=7", true);
-	xhr.send();
-	xhr.onreadystatechange = function() {
-		if (xhr.readyState != 4) return;
+	for (const key in map) {
+		const element = map[key];
 
-		if (xhr.status != 200) {
-		    errorElement.hidden = false;
-		} else {
-			try {
-				parsed = JSON.parse(xhr.responseText);
-			} catch (error) {
-				errorElement.hidden = false;
-				return;
-			}
+		const elementId = key + "-tab";
+		var tab = document.getElementById(elementId);
+		tab.map_id = key;
 
-			var photoElement = document.getElementById("photo");
-			photoElement.src = parsed["photo"];
+		var xhr = new XMLHttpRequest();
 
-			var tabs = document.getElementById("tabs").getElementsByClassName("tab");
-
-			for (var i = 0; i < tabs.length; i++) {
-				tabs[i].onclick = tabHandler;
-			}
-
-			if (HTMLElement.click)
-		    	document.getElementById("articles-tab").click();
-		    else
-		    	tabHandler({srcElement : document.getElementById("articles-tab")});
-
-		    mainElement.hidden = false;
-		    footerElement.hidden = false;
-
-		}
-
-		
-	};
-
-	return false;
+		xhr.open("GET", element["template"], true);
+		xhr.onreadystatechange = templateCallback.bind(null, xhr, tab, elementId);
+		xhr.send();
+	}
 }

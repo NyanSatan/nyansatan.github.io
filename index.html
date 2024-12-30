@@ -1,71 +1,86 @@
 <html>
-	<head>
-		<link rel="icon" href="apple-touch-icon.png">
-		<link rel="stylesheet" type="text/css" href="new-common/general.css">
-		<link rel="stylesheet" type="text/css" href="new-common/main-page.css">
+    <head>
+        <link rel="icon" href="apple-touch-icon.png">
+        <link rel="stylesheet" type="text/css" href="common-v3/general.css">
+        <link rel="stylesheet" type="text/css" href="common-v3/index.css">
 
-		<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
-		<meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
+        <meta charset="UTF-8">
 
-		<script type="text/javascript" src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-		<script type="text/javascript" src="js/3rd-party/mustache.min.js"></script>
-		<script type="text/javascript" src="js/index.js?v=7"></script>
+        <!-- <script type="text/javascript" src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>-->
+        <script type="text/javascript" src="js/3rd-party/mustache.min.js"></script>
+        <script type="text/javascript" src="js/index.js?v=8"></script>
+        <script type="text/javascript" src="map/map.js?v=1"></script>
 
-		<title>john (@nyan_satan)</title>
-	</head>
+        <title>john (@nyan_satan)</title>
+    </head>
 
-	<body onload="main()">
-		<div id="main" class="main" hidden>
-			<div class="text">
-				<center>
-					<img id="photo" class="align avatar">
-					<h1 id="name">john</h1>
-					<div class="desc">@nyan_satan</div>
+    <body onload="main()">
+        <div id="main" class="main">
+            <div class="apt">
+                <a class="link" target="_blank" href="/apt">
+                    <img class="apt" align="left" src="resources/cydia.png">
+                    <img class="apt-arrow" align="left" src="resources/arrow.png">
+                    Cydia repository
+                </a>
+            </div>
 
-					<div class="p">
-						Love skeuomorphism in Apple's implementation. Interested in Apple Internal software/hardware. Mostly known for the dualboot guide and Apple Lightning <i>research</i>
-					</div>
+            <div class="text">
+                <div class="layout-container">
+                    <div class="layout-element">
+                        <img class="align avatar shadowed" src="resources/photo.jpg">
+                    </div>
 
-					<div class="p">
-						This website was made to gather all my articles, guides and Twitter threads in one place
-					</div>
-				</center>
+                    <div class="layout-element">
+                        <h1>john (@nyan_satan)</h1>
 
-				<div id="tabs" class="tab-controller">
-					<div id="articles-tab" class="tab" inited=0>
-						Articles
-					</div>
+                        <p>
+                            Love skeuomorphism in Apple's implementation. Interested in AppleInternal software/hardware. Mostly known for the dualboot guide and Apple Lightning research
+                        </p>
 
-					<div id="threads-tab" class="tab" inited=0>
-						Threads
-					</div>
-				</div>
+                        <p>
+                            This website was made to gather all my articles, guides and Twitter threads in one place
+                        </p>
+                    </div>
+                </div>
 
-				<div class="tabs-content">
-					<div id="articles-tab-contents" hidden>
-					</div>
+                <div id="tabs" class="tab-controller">
+                    <div id="articles-tab" class="tab" primary=1>
+                        Articles
+                    </div>
 
-					<div id="threads-tab-contents" hidden>
-					</div>
-				</div>
-			</div>
-		</div>
+                    <div id="projects-tab" class="tab">
+                        Projects
+                    </div>
 
-		<div id="error" class="main" hidden>
-			<div class="text">
-				<center>
-					<h1>Error occured!</h1>
-					Internal error occured, please contact @nyan_satan
-				</center>
-			</div>
-		</div>
+                    <div id="threads-tab" class="tab">
+                        Threads
+                    </div>
 
+                    <div id="links-tab" class="tab" prerendered=1>
+                        Links
+                    </div>
+                </div>
 
-		<footer hidden>
-			john, 2019-2023<br>
-			<a href="https://twitter.com/nyan_satan"><img class="footer" src="new-common/twitter.png"></a>
-			<a href="https://github.com/NyanSatan"><img class="footer" src="new-common/github.png"></a>
-			<a href="mailto:nyansatan@icloud.com"><img class="footer" src="new-common/mail.png"></a>
-		</footer>
-	</body>
+                <div class="tabs-content">
+                    <div id="articles-tab-contents" hidden>
+                    </div>
+
+                    <div id="projects-tab-contents" hidden>
+                    </div>
+
+                    <div id="threads-tab-contents" hidden>
+                    </div>
+
+                    <div id="links-tab-contents" hidden>
+                    </div>
+                </div>
+            </div>
+
+            <footer>
+                <div class="separator"></div>
+                john, 2017-2025<br>
+            </footer>
+        </div>
+    </body>
 </html>
