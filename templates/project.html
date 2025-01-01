@@ -1,0 +1,24 @@
+<center>
+    {{desc}}
+</center>
+
+{{#posts}}
+    <div class="post">
+        <h3>{{title}}</h3>
+
+        <p>
+            {{desc}}
+        </p>
+
+        {{#picture}}
+            <img class="post" src="{{picture}}">
+        {{/picture}}
+
+        <div>
+            <a class="link" href="{{link}}">
+                <img class="github-link" src="resources/ui/github_logo.png">
+                <span class="github-link">Source</span>
+            </a>
+        </div>
+    </div>
+{{/posts}}

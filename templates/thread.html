@@ -1,8 +1,29 @@
-{{#threads}}
-	<div class="post">
-		<h3>{{title}}</h3>
-		<div class="desc">Posted on {{date}}</div>
-		<center>{{{embedded}}}</center>
-		<div class="separator"></div>
-	</div>
-{{/threads}}
+<center>
+    {{desc}}
+</center>
+
+{{#posts}}
+    <div class="post">
+        <div class="tweet-profile">
+            <a class="link" target="_blank" href="https://twitter.com/nyan_satan">
+                <div class="inline-images">
+                    <img class="twitter-pfp" src="resources/photo.jpg">
+                    <div>
+                        <b>john</b>
+                        <div class="desc">@nyan_satan</div>
+                    </div>
+                    <img class="twitter-logo" src="resources/ui/twitter_logo.svg">
+                </div>
+            </a>
+        </div>
+        <div class="post-content">
+            <a class="link" href="{{link}}">
+                <h3>{{title}}</h3>
+                <div class="desc">Posted on {{date}}</div>
+
+                <p>{{{text}}}</p>
+                <img class="align post" src="{{picture}}">
+            </a>
+        </div>
+    </div>
+{{/posts}}

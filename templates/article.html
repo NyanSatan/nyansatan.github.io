@@ -1,16 +1,23 @@
+<center>
+    {{desc}}
+</center>
+
 {{#posts}}
-	<div class="post">
-		<a class="link" href="{{link}}">
-			<h3>{{title}}</h3>
-			<div class="desc">
-				Posted on {{date}}
-				{{#pinned}}
-					: pinned
-				{{/pinned}}
-			</div>
-			<img class="align post shadowed" src="{{picture}}">
-			{{desc}}
-		</a>
-		<div class="separator"></div>
-	</div>
+    <div class="post">
+        <a class="link" href="{{link}}">
+            <h3>{{title}}</h3>
+            <div class="desc">
+                Posted on {{date}}
+                {{#pinned}}
+                    : <img class="pin" src="resources/ui/pin.png">
+                {{/pinned}}
+            </div>
+
+            <img class="post" src="{{picture}}">
+
+            <div class="p">
+                {{desc}}
+            </div>			
+        </a>
+    </div>
 {{/posts}}

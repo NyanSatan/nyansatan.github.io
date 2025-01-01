@@ -1,0 +1,16 @@
+<div class="post-standalone">
+    {{#posts}}
+        <div class="link-container">
+            <div class="inline-images">
+                <img class="link" src="{{icon}}">
+                <div class="link">
+                    {{#atprefix}}@{{/atprefix}}<a class="link-link" target="_blank" href="{{link}}">{{name}}</a>
+                </div>
+            </div>
+
+            <div class="link-description">
+                {{desc}}
+            </div>
+        </div>
+    {{/posts}}
+</div>

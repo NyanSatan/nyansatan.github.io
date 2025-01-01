@@ -2,7 +2,6 @@ var templates = new Object();
 
 function fillTab(tab, tabContents) {
     tabContents.innerHTML = Mustache.render(templates[tab.map_id], map[tab.map_id]);
-	console.log(templates[tab.map_id]);
     tab.inited = 1;
 }
 
@@ -28,41 +27,41 @@ function tabHandler(event) {
     }
 }
 
-function templateCallback(xhr, tab, elementId) {
-	if (xhr.readyState != 4) return;
+function templateCallback(xhr, tab) {
+    if (xhr.readyState != 4) return;
 
-	if (xhr.status == 200) {
-		templates[tab.map_id] = xhr.responseText;
+    if (xhr.status == 200) {
+        templates[tab.map_id] = xhr.responseText;
 
-		tab.onclick = tabHandler;
+        tab.onclick = tabHandler;
 
-		if (tab.getAttribute("primary")) {
-			tabHandler({srcElement : tab});
-		}
-	} else {
-		alert("Wow, this is unexpected, but we really couldn't load " + key + " template!");
-	}
+        if (tab.getAttribute("primary")) {
+            tabHandler({srcElement : tab});
+        }
+    } else {
+        alert("Wow, this is unexpected, but we really couldn't load " + key + " template!");
+    }
 }
 
 function main() {
-	var prerendered = document.querySelectorAll(`[prerendered*="1"]`);
+    // var prerendered = document.querySelectorAll(`[prerendered*="1"]`);
 
-	for (const tab of prerendered) {
-		tab.inited = 1;
-		tab.onclick = tabHandler;
-	}
+    // for (const tab of prerendered) {
+    // 	tab.inited = 1;
+    // 	tab.onclick = tabHandler;
+    // }
 
-	for (const key in map) {
-		const element = map[key];
+    for (const key in map) {
+        const element = map[key];
 
-		const elementId = key + "-tab";
-		var tab = document.getElementById(elementId);
-		tab.map_id = key;
+        const elementId = key + "-tab";
+        var tab = document.getElementById(elementId);
+        tab.map_id = key;
 
-		var xhr = new XMLHttpRequest();
+        var xhr = new XMLHttpRequest();
 
-		xhr.open("GET", element["template"], true);
-		xhr.onreadystatechange = templateCallback.bind(null, xhr, tab, elementId);
-		xhr.send();
-	}
+        xhr.open("GET", element["template"], true);
+        xhr.onreadystatechange = templateCallback.bind(null, xhr, tab);
+        xhr.send();
+    }
 }
