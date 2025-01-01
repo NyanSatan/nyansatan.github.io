@@ -51,11 +51,9 @@ function main() {
     // 	tab.onclick = tabHandler;
     // }
 
-    for (const key in map) {
-        const element = map[key];
-
-        const elementId = key + "-tab";
-        var tab = document.getElementById(elementId);
+    for (var key in map) {
+        var element = map[key];
+        var tab = document.getElementById(key + "-tab");
         tab.map_id = key;
 
         var xhr = new XMLHttpRequest();
