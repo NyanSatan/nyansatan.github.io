@@ -1,0 +1,131 @@
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    background-image: -webkit-image-set(url("/apt/resources/pinstripe.png") 2x);
+    background-image: image-set(url("/apt/resources/pinstripe.png") 2x);
+    background-repeat: repeat;
+    background-attachment: fixed;
+    margin: 0;
+}
+
+h3 {
+    margin: 7px 0;
+    font-size: 12pt;
+}
+
+ul {
+    margin-top: 8px;
+    margin-bottom: 0px;
+    padding-left: 20px;
+}
+
+p.cli {
+    background-color: #F0F0F0;
+    padding: 6px;
+    margin: 8px 0;
+    border-radius: 8px;
+    font-family: Menlo, Courier;
+    font-size: 10pt;
+    word-wrap: break-word;
+}
+
+div.p {
+    margin: 6px 4px 6px 4px;
+}
+
+div.main {
+    max-width: 320px;
+    margin: 8px auto;
+    font-family: Helvetica;
+    color: black;
+    padding-bottom: 10px;
+}
+
+div.section {
+    margin: 8px 9px;
+}
+
+div.section-header {
+    padding-top: 8px;
+    margin-left: 12px;
+    color: #4d4d64;
+    font-weight: bold;
+    text-shadow: 1px 1px 0 #eff0f3;
+}
+
+div.section-text {
+    margin: 4px 0;
+    background-color: white;
+    border-radius: 8px;
+    border: 1px solid #9a9a9a;
+}
+
+div.section-row {
+    padding: 7px;
+    min-height: 30px;
+}
+
+div.section-title {
+    font-weight: bold;
+    font-size: 13pt;
+}
+
+div.section-separator {
+    background-color: #9a9a9a;
+    height: 1px;
+    width: 100%;
+}
+
+img.section-icon {
+    height: 30px;
+    width: auto;
+    margin-right: 6px;
+}
+
+img.shadowed {
+    filter: drop-shadow(0px 1px 1px black);
+}
+
+div.title {
+    width: 85%;
+    margin: 12px auto;
+}
+
+img.inline {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+img.title-icon {
+    height: 67px;
+    width: auto;
+    margin-right: 12px;
+}
+
+div.inline {
+    vertical-align: middle;
+    display: inline-block;
+}
+
+span.title {
+    font-weight: bold;
+}
+
+div.subtitle {
+    color: #5c6b8d;
+    font-weight: bold;
+    text-shadow: 1px 1px 0 #f4f6f8;
+    margin-left: -2px;
+}
+
+a.link {
+    color: inherit;
+    text-decoration: none;
+}
+
+a.link-link {
+    color: #5c6b8d;
+}

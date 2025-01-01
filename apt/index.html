@@ -1,0 +1,123 @@
+<html>
+    <head>
+        <link rel="icon" href="/apple-touch-icon.png">
+        <link rel="stylesheet" type="text/css" href="/apt/css/general.css">
+
+        <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
+        <meta charset="UTF-8">
+
+        <title>john's Cydia repository</title>
+    </head>
+
+    <body>
+        <div id="main" class="main">
+            <div class="title">
+                <img class="inline title-icon shadowed" src="CydiaIcon.png">
+                <div class="inline">
+                    <span class="title">john's Cydia repository</span>
+                    <div class="subtitle">
+                        @<a class="link-link" href="https://twitter.com/nyan_satan">nyan_satan</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-text">
+                    <div class="section-row">
+                        A bunch of tools for jailbroken 32-bit devices, mostly for my <a href="https://nyansatan.github.io/dualboot/">dualboot guide</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    Adding the repository
+                </div>
+    
+                <div class="section-text">
+                    <div class="section-row">
+                        <a class="link" href="cydia://url/https://cydia.saurik.com/api/share#?source=http://nyansatan.github.io/apt">
+                            <div>
+                                <img class="inline section-icon" src="resources/cydia.png">
+                                <div class="inline section-title">Cydia</div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="section-separator"></div>
+
+                    <div class="section-row">
+                        <div class="p">
+                            On older iOS versions you might need to install this certificate first:
+
+                            <p class="cli">
+                                http://cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    Packages
+                </div>
+
+                <div class="section-text">
+                    <div class="section-row">
+                        <div>
+                            <img class="inline section-icon" src="resources/wayout.png">
+                            <div class="inline section-title">Way Out</div>
+                        </div>
+
+                        <div class="p">
+                            <b>Way Out</b> is a GUI for kloader/multi_kloader in the spirit of iOS 5/6 setup assistant and designed for dualboot to these versions (you can boot arbitrary iOS with this tool of course) 
+                        </div>
+        
+                        <div class="p">
+                            <h3>Features</h3>
+                            <ul>
+                                <li>multi_kloader (on iOS 6+)</li>
+                                <li>kloader</li>
+                                <li>Preboot scripting</li>
+                            </ul>
+                        </div>
+        
+                        <div class="p">
+                            <h3>Credits</h3>
+                            @winocm, @xerub, @JonathanSeals, @axi0mx
+                        </div>
+                    </div>
+
+                    <div class="section-separator"></div>
+
+                    <div class="section-row">
+                        <div>
+                            <img class="inline section-icon" src="resources/purplerestore.png">
+                            <div class="inline section-title">dualbootstuff</div>
+                        </div>
+
+                        <div class="p">
+                            Package of tools for iOS dualbooting, including:
+                        </div>
+    
+                        <div class="p">
+                            <ul>
+                                <li><b>hfs_resize</b> resizes HFS+ volumes</li>
+                                <li><b>gptfdisk</b> is interactive tool for editing GPT</li>
+                                <li><b>asr</b> is <b>A</b>pple <b>S</b>ystem <b>R</b>estore. Restores DMG images to block devices</li>
+                                <li><b>kloader</b> loads arbitrary iBoot images using iOS deep sleep</li>
+                                <li><b>multi_kloader</b> loads two images instead of one</li>
+                                <li><b>attach</b>, <b>detach</b> attaches/detaches a DMG image</li>
+                                <li><b>ttbthingy</b> patches kernel to re-enable use of UID-key. Required to downgrade keybags</li>
+                                <li><b>fixkeybag</b> generates/downgrades/decrypts system keybags</li>
+                                <li><b>NoMoreSIGABRT</b> patches attributes of a HFS+ volume to add the "protect" flag</li>
+                                <li><b>TwistedMind2</b> repartitions iOS style GPT (for iOS 4.x dualboot)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
