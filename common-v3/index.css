@@ -60,7 +60,7 @@ img.post {
     border-radius: 8px;
     max-height: 320px;
     max-width: 100%;
-    margin: 10px auto;
+    margin: 10px auto 0px auto;
     display: block;
 }
 
@@ -152,7 +152,7 @@ div.link-container {
 
 /* ugly */
 div.link-description {
-    margin-left: 54px;
+    margin-left: 56px;
 }
 
 img.github-link {
@@ -165,4 +165,8 @@ span.github-link {
     vertical-align: middle;
     font-family: OpenSans;
     text-decoration: underline;
+}
+
+div.source-link {
+    margin-top: 10px;
 }

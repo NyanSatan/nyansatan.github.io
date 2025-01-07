@@ -24,7 +24,7 @@ var map =
             },
             {
                 "title" : "S5L8442Pwnage2",
-                "desc" : "iPod shuffle 3 port of ancient Pwnage 2.0 exploit that was initially released back in 2008",
+                "desc" : "iPod shuffle 3 port of the ancient Pwnage 2.0 bootrom exploit that was initially released back in 2008",
                 "picture" : "resources/projects/ipodshuffle3.png",
                 "link" : "https://github.com/NyanSatan/S5L8442Pwnage2"
             },
