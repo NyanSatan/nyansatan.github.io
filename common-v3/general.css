@@ -14,9 +14,7 @@ html {
 }
 
 body {
-    background-color: #2c1830;
-    background: radial-gradient(circle at bottom, #5e2f66, black);
-    background-attachment: fixed;
+    background-color: black;
     margin: 0;
 }
 
@@ -42,7 +40,7 @@ h3 {
     font-size: 14pt;
     margin-top: 0px;
     margin-bottom: 0px;
-    text-shadow: 0 -2px 0 #000;
+    text-shadow: 0 0 1px #000;
 }
 
 img.align {
@@ -83,6 +81,7 @@ footer {
     font-family: OpenSans;
     text-align: center;
     height: 100px;
+    text-shadow: 0 -1px 1px #000;
 }
 
 div.footer-text {

@@ -15,7 +15,6 @@ function setCSS() {
     link.type = 'text/css';
     link.href = css;
     head.appendChild(link);
-    
 }
 
 function getiOS() {

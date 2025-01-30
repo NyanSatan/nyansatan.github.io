@@ -9,8 +9,9 @@ function tabHandler(event) {
     var requestedTab = event.srcElement;
     var activeTab = document.getElementById("tabs").getElementsByClassName("tab-active")[0];
 
-    if (requestedTab == activeTab) 
+    if (requestedTab == activeTab) {
         return;
+    }
 
     if (activeTab) {
         activeTab.classList.remove("tab-active");
@@ -28,7 +29,9 @@ function tabHandler(event) {
 }
 
 function templateCallback(xhr, tab) {
-    if (xhr.readyState != 4) return;
+    if (xhr.readyState != 4) { 
+        return;
+    }
 
     if (xhr.status == 200) {
         templates[tab.map_id] = xhr.responseText;
@@ -43,13 +46,25 @@ function templateCallback(xhr, tab) {
     }
 }
 
-function main() {
-    // var prerendered = document.querySelectorAll(`[prerendered*="1"]`);
+var colors = [
+    "#47234d",
+    "#001f3f",
+    "#06402b",
+    "#91043c",
+    "#096c6c"
+];
 
-    // for (const tab of prerendered) {
-    // 	tab.inited = 1;
-    // 	tab.onclick = tabHandler;
-    // }
+function randomizeBackground() {
+    var timestamp = Math.floor(Date.now() / 1000);
+    var color = colors[timestamp % colors.length];
+
+    var toColorize = document.getElementById("colorized");
+    toColorize.style["background"] = "radial-gradient(circle at bottom, " + color + ", black)";
+    toColorize.style["background-attachment"] = "fixed";
+}
+
+function main() {
+    randomizeBackground();
 
     for (var key in map) {
         var element = map[key];
