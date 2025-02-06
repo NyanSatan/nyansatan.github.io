@@ -18,6 +18,16 @@ body {
     margin: 0;
 }
 
+.fixed-bg {
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    z-index: -1;
+}
+
 div.main {
     margin: auto;
     color: white;
