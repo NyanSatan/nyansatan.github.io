@@ -88,6 +88,7 @@ div.desc {
 }
 
 footer {
+    padding-bottom: 4px;
     font-family: OpenSans;
     text-align: center;
     height: 100px;

@@ -54,8 +54,7 @@ var colors = [
     "#47234d",
     "#001f3f",
     "#06402b",
-    "#91043c",
-    "#096c6c"
+    "#91043c"
 ];
 
 function setBackground() {

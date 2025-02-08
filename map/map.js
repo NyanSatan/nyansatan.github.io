@@ -209,7 +209,7 @@ var map =
             {
                 "name" : "nyan_satan@infosec.exchange",
                 "link" : "https://infosec.exchange/@nyan_satan",
-                "icon" : "resources/ui/mastodon_logo.svg",
+                "icon" : "resources/ui/mastodon_logo.png",
                 "desc" : "Since some people moved away from Twitter, I also cross-post to Mastodon",
                 "atprefix" : true
             },
@@ -224,6 +224,13 @@ var map =
                 "link" : "mailto:nyansatan@icloud.com",
                 "icon" : "resources/ui/mail_logo.png",
                 "desc" : "Public e-mail address - feel free to contact me if you have any questions!"
+            },
+            {
+                "name" : "nyan_satan",
+                "link" : "https://www.youtube.com/@nyan_satan",
+                "icon" : "resources/ui/youtube_logo.png",
+                "desc" : "Was used by me in the old age when Twitter didn't allow videos longer than 30 seconds, barely updated nowadays",
+                "atprefix" : true
             }
         ]
     }
