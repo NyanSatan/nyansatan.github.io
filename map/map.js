@@ -42,7 +42,7 @@ var map =
     },
 
     "articles" : {
-        "template" : "templates/article.html",
+        "template" : "templates/article.html?v=2",
         "desc" : "Various write-ups & tutorials - I mostly cover low level iOS-related things",
         "posts" : [
             {
@@ -120,7 +120,7 @@ var map =
     },
 
     "threads" : {
-        "template" : "templates/thread.html",
+        "template" : "templates/thread.html?v=1",
         "desc" : "Twitter threads - I write them if the information is too little to have its' own article",
         "posts" : [
             {
