@@ -203,7 +203,7 @@ var map =
     },
 
     "links" : {
-        "template" : "templates/link.html",
+        "template" : "templates/link.html?v=1",
         "posts" : [
             {
                 "name" : "nyan_satan",
@@ -235,7 +235,7 @@ var map =
                 "name" : "nyan_satan",
                 "link" : "https://www.youtube.com/@nyan_satan",
                 "icon" : "resources/ui/youtube_logo.png",
-                "desc" : "Was used by me in the old age when Twitter didn't allow videos longer than 30 seconds, barely updated nowadays",
+                "desc" : "<s>Was used by me in the old age when Twitter didn't allow videos longer than 30 seconds, barely updated nowadays</s> Now that there's Mastodon, used again to publish video demos",
                 "atprefix" : true
             }
         ]
