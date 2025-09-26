@@ -11,6 +11,12 @@ var map =
                 "link" : "https://github.com/NyanSatan/Anya"
             },
             {
+                "title" : "polinaserial",
+                "desc" : "Serial port monitor program for Mac OS X (and derivative platforms) with lolcat, iBoot logs deobfuscation & many more features. Oriented on iOS hacking and research",
+                "picture" : "resources/projects/polinaserial.jpg",
+                "link" : "https://github.com/NyanSatan/polinaserial"
+            },
+            {
                 "title" : "Image3 RE",
                 "desc" : "Research on the mysterious Apple A6 ROM exploit that uses flaws in Image3 subsystem. Even though I found a few bugs there, it's not enough",
                 "picture" : "resources/projects/ipsw.png",
