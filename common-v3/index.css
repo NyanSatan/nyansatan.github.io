@@ -39,14 +39,6 @@ div.post-standalone {
     max-width: 600px;
 }
 
-div.separator {
-    background: radial-gradient(white, transparent);
-    width: 90%; 
-    height: 1px; 
-    overflow: hidden;
-    margin: 10px auto;
-}
-
 div.post {
     padding: 20px;
     margin: 20px auto;
@@ -124,10 +116,6 @@ img.twitter-logo {
 img.pin {
     width: 12px;
     height: auto;
-}
-
-div.p {
-    margin-top: 12px;
 }
 
 img.link {

@@ -35,6 +35,18 @@ div.main {
     font-size: 12pt;
 }
 
+div.separator {
+    background: radial-gradient(white, transparent);
+    width: 90%; 
+    height: 1px; 
+    overflow: hidden;
+    margin: 10px auto;
+}
+
+div.p {
+    margin: 12px 0;
+}
+
 div.text {
     max-width: 800px;
     margin: auto;
@@ -44,6 +56,10 @@ div.text {
 h1, h3, h4 {
     font-family: OpenSans;
     margin-top: 3px;
+}
+
+h1, h2 {
+    margin-bottom: 2px;
 }
 
 h3 {
