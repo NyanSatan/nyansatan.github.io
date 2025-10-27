@@ -60,6 +60,13 @@ var map =
                 "pinned" : true
             },
             {
+                "title" : "iBoot log (de)obfuscation",
+                "date" : "27.10.25",
+                "desc" : "Little write-up on iOS 9+ iBoot log obfuscation and what I managed to do about it",
+                "picture" : "resources/projects/polinaserial.jpg",
+                "link" : "iboot-log-deobfuscation"
+            },
+            {
                 "title" : "Apple Lightning (cont.) - serial number reading",
                 "date" : "29.10.20",
                 "desc" : "(Almost) everything I know about how Kanzi/SNR cables read serial numbers from dead devices",

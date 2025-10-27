@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <style>
+            body {
+                background-color: #24133a;
+                color: white;
+            }
+
+            footer {
+                background-color: #140e20 !important;
+            }
+        
+            h2 {
+                font-family: Merriweather;
+                margin-top: 3px;
+            }
+
+            h3 {
+                margin-bottom: 12px !important;
+            }
+
+            div.text {
+                margin: 8px 12px !important;
+                font-size: 16pt !important;
+            }
+
+            div.p {
+                margin: 14px 0px !important;
+            }
+
+            a {
+	            color: inherit;
+            }
+
+            p.cli {
+                background-color: #140e20 !important;
+            }
+            
+            span.cli {
+                font-size: 12pt !important;
+                padding: 0 2px !important;
+                background-color: transparent !important;
+                letter-spacing: 0.25px;
+            }
+        </style>
+
+        <link rel="icon" href="/apple-touch-icon.png">
+        <link rel="stylesheet" type="text/css" href="/new-common/general.css">
+
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
+        <meta name="format-detection" content="telephone=no">
+
+        <title>iBoot log (de)obfuscation</title>
+    </head>
+
+    <body>
+        <div id="main" class="main">
+            <div class="text">
+                <h1>iBoot log (de)obfuscation</h1>
+                <div class="desc">Created on 27.10.25</div>
+
+                <div class="p">
+                    Back in the good old days, and also slightly after, iBoot printed pretty verbose logs into UART and USB recovery mode console:
+                </div>
+
+                <img class="align" src="resources/good_ole_iboot.png">
+
+                <div class="p">
+                    Then in iOS 9, things <i>changed</i>:
+                </div>
+
+                <img class="align" src="resources/bad_neu_iboot.png">
+
+                <div class="p">
+                    Instead of good strings that actually meant something, we got a lot of random hex-digits. And in those few strings that were spared, "security-sensitive" information (such as pointers) is censored:
+                </div>
+
+                <p class="cli">
+                    898c9b8847addcc7:252<br>
+                    loaded ramdisk at &ltptr&gt of size 0x1799000, from image at &ltptr&gt<br>
+                    898c9b8847addcc7:252<br>
+                    loaded device tree at &ltptr&gt of size 0x100000, from image at &ltptr&gt<br>
+                    898c9b8847addcc7:252<br>
+                    898c9b8847addcc7:252<br>
+                    Attempting to validate kernelcache @ &ltptr&gt<br>
+                    14fdbf61484fe311:322<br>
+                </p>
+
+                <div class="p">
+                    <b>DEVELOPMENT</b> and <b>DEBUG</b> iBoots still got all the strings, though
+                </div>
+
+                <h2>What they are</h2>
+
+                <div class="p">
+                    Luckily for us, back in 2018 some honorable men leaked iOS 9 iBoot source code to general public. According to the code, log strings in <b>RELEASE</b> iBoots are replaced by a hash of a filename (+ line number) where the corresponding <span class="cli">printf()</span> call is located
+                </div>
+
+                <div class="p">
+                    It was easy then to apply the hashing algorithm (SHA1 HMAC with <span class="cli">"obfuscation of filename for release build logging"</span> string as start value) against the entire source tree and get <span class="cli">hash => filename</span> map
+                </div>
+
+                <div class="p">
+                    At some point I even wrote a serial port monitor program that dynamically detects obfuscated iBoot logs and appends corresponding filename to lines:
+                </div>
+
+                <img class="align" src="resources/old_polinaserial.jpg">
+                
+                <div class="p">
+                    Unfortunately, shortly after the leak Apple changed either the hashing algorithm or at least the start value. Because of this, the program became useless against late iOS 11 builds and all the newer ones
+                </div>
+
+                <div class="p">
+                    A few months ago I decided to try to recover the new <span class="cli">hash => filename</span> mappings (or at least some of them) to aid playing with newer iBoots
+                </div>
+
+                <div class="p">
+                    I found 2 methods that allowed me to recover 500+ new mappings
+                </div>
+
+
+                <h2>Method #1 - diffing</h2>
+
+                <div class="p">
+                    <a href="https://x.com/b1n4r1b01">@binaryboy</a> did find which exact build changed the hashing algorithm - it was iOS 11.3 beta 4
+                </div>
+
+                <div class="p">
+                    My idea was "if it's just another beta build, then it's unlikely that they changed a lot of logic compared to iOS 11.3 beta 3, right? And then it's easy to diff?". To answer the questions, let's compare build tags first of all:
+                </div>
+
+                <p class="cli">
+                    iBoot-4076.50.123 - beta 3<br>
+                    iBoot-4076.50.126 - beta 4
+                </p>
+
+                <div class="p">
+                    Just 3 minor(-est) versions apart! Deeper inspection with IDA showed that the only thing that actually changed in between is the hashes
+                </div>
+
+                <div class="p">
+                    The diff strategy is surely viable then! I can get a <span class="cli">new hash => old hash => filename</span> map, which could be then simplified to <span class="cli">new hash => filename</span> - exactly what we want!
+                </div>
+
+                <div class="p">
+                    Obviously, I wanted to diff everything automatically - iBoot is quite a large binary and each device model has its' own build configuration
+                </div>
+
+                <div class="p">
+                    Luckily, the images are so similar, that instructions that load the hashes (4 <span class="cli">MOVK</span>s with shift) are on the same offset in both versions
+                </div>
+
+                <div class="p">
+                    I downloaded all possible pairs of iOS 11.3 beta 3 & 4 iBoots, decrypted them and wrote a dumb Python script with Capstone library to diff those. Here is an excerpt of a report from the script:
+                </div>
+
+                <p class="cli">
+                    loading pre-generated file names<br>
+                    total 1930 file names<br>
+                    <br>
+                    warning - insn mismatch @ 0x1010!<br>
+                    [iBoot.n69u.RELEASE.bin] matches - 84 (92.31%), nonmatched - 7<br>
+                    ...<br>
+                    <br>
+                    printing matched results:<br>
+                        0x0b4ebe6fdc23a646 => arch/arm64/mmu.c<br>
+                        0x0cb5568870038567 => arch/arm64/task.c<br>
+                        ...<br>
+                    TOTAL matches - 206 (77.15%), TOTAL nonmatched - 61<br>
+                    <br>
+                    printing never stolen HMACs:<br>
+                        0xf3a8c8baccd77a48 => sys/supervisor.c<br>
+                        0x61b63fde3148defe => drivers/apple/mailbox/mailbox64.c<br>
+                        ...<br>
+                    TOTAL never stolen HMACs - 48<br>
+                    written 254 matched HMACs to hmacs/betas.txt
+                </p>
+
+                <div class="p">
+                    Pretty good yield! However, iOS 11 is very old at this point, and this method cannot give us new files that weren't there back then
+                </div>
+
+                <h3>Side note #1</h3>
+
+                <div class="p">
+                    You could notice "never stolen HMACs" in the report excerpt above. What's that? The thing is they obviously added some new files between iOS 9 and 11.3, so I gathered all relevant <b>DEVELOPMENT</b>/<b>DEBUG</b> iBoots that I got from various leaks, prototype dumps, etc. (~700 images total) and extracted filenames from those (they are printed upon assertion fails)
+                </div>
+
+                <div class="p">
+                    Then I generated their HMACs as per the old algorithm from the stolen source, so I could match them, too. The "never stolen HMACs" are the ones hashed with the old algo
+                </div>
+
+
+                <h2>Method #2 - assertions</h2>
+
+                <div class="p">
+                    As I already mentioned, iBoot has <span class="cli">assert()</span>-like invocations across its' codebase, and there are quite a lot of them. When condition of an assertion is not met, they print a scary message and panic
+                </div>
+
+                <div class="p">
+                    The scary message contains what? Correct! A filename where the assertion in question is located
+                </div>
+
+                <div class="p">
+                    The absolute most of <span class="cli">assert()</span>'s are only compiled into <b>DEVELOPMENT</b>/<b>DEBUG</b> iBoot, but at some point they started to include quite some amount of those into <b>RELEASE</b>
+                </div>
+
+                <div class="p">
+                    Now here is the 1 million dollar question - what does <b>RELEASE</b> iBoot print upon a failed assertion? A hash!
+                </div>
+
+                <div class="p">
+                    Long story short, the strategy here is the following:
+                </div>
+
+                <ol>
+                    <li>
+                        Find all functions that do assertions in <b>DEVELOPMENT</b>/<b>DEBUG</b> iBoot
+                        <ul>
+                            <li>Dead easy to do - find all strings that look like a path (e.g. <span class="cli">drivers/apple/mailbox/mailbox64.c</span>) and code XREFs to them</li>
+                        </ul>
+                    </li>
+                    
+                    <li>
+                        Find all functions that print a hash in <b>RELEASE</b> counterpart
+                        <ul>
+                            <li>Also nothing complex - look for all <span class="cli">MOV</span> instructions with a large immediate with high entropy as second operand</li>
+                        </ul>
+                    </li>
+                    
+                    <li>
+                        Diff all the functions from 2 images against each other so we can map a function from <b>DEVELOPMENT</b>/<b>DEBUG</b> iBoot to the same one in <b>RELEASE</b>
+                        <ul>
+                            <li>Not manually with Capstone anymore, but with something like <b>BinDiff</b></li>
+                            <li>Obviously, there is gonna be a lot of false positives, but if we filter out matches with low similarity rates...</li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        From such map we can then derive a map of <span class="cli">hash => filename</span> that we want
+                            
+                        <ul>
+                            <li>Also needs checks for possible collisions (which are obvious signs of mistakes)</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <div class="p">
+                    Ratio of amount of asserts in <b>RELEASE</b> iBoot vs. <b>DEVELOPMENT</b>/<b>DEBUG</b> looks pretty sad - 1 to 10. In absolute values it's around 50-90 in RELEASE and up to ~1000 in <b>DEVELOPMENT</b>/<b>DEBUG</b>
+                </div>
+
+                <div class="p">
+                    But! Even though <b>RELEASE</b> version of a function might have no assert, it still might print something. Such print will then turn into a hash. Meaning we still can consider such function for diffing
+                </div>
+
+
+                <h3>Sourcing images</h3>
+
+                <div class="p">
+                    <b>DEVELOPMENT</b> and <b>DEBUG</b> iBoots are obviously not released by Apple. I, however, posses a large collection of leaked <b>DEVELOPMENT</b> (and sometimes <b>DEBUG</b>) bootloaders that I also got a direct <b>RELEASE</b> counterpart for - they are compiled from the exact same source, which I consider very good for the actual binary diffing
+                </div>
+
+                <div class="p">
+                    I also had a lot more good iBoots from various leaks, prototype dumps and Horizon bundles (hardware calibration firmware for repairs). Total amount of images in my diffing dataset is almost 1 thousand
+                </div>
+
+                <h3>IDA considerations</h3>
+
+                <div class="p">
+                    iBoot is shipped raw without Mach-O container. So definetely no symbols, and no segmentation info, even. IDA tends to mess up analysis of such raw binaries in many different ways, but the most frustraiting one is the PACIBSP problem
+                </div>
+
+                <img class="align" src="resources/ida_pacibsp_problem.png">
+
+                <div class="p">
+                    <span class="cli">PACIBSP</span> instruction is the most obvious and 100% reliable way to tell that a function starts here, but still IDA manages to mess it up. All because of an embedded plugin that uses patterns taken from Ghidra (?!) to detect function bounds. This does sound like a sick joke, indeed, but unfortunately <a href="https://hex-rays.com/blog/the-ida-patfind-plugin" target="_blank">I'm not joking</a>
+                </div>
+
+                <div class="p">
+                    Luckily, the plugin can be disabled
+                </div>
+
+                <div class="p">
+                    After that we can turn PAC into our strongest ally and detect function bounds properly with a bit of IDAPython code
+                </div>
+
+                <div class="p">
+                    Among other notable issues, missing <span class="cli">noreturn</span> flag on <span class="cli">panic()</span> creates a lot of problems with function bounds as well, so I find the function and rename it (IDA is smart enough to put the <span class="cli">noreturn</span> flag automatically)
+                </div>
+
+                <h3>Diffing considerations</h3>
+
+                <div class="p">
+                    There is no need to diff everything, just the functions that print something (for <b>RELEASE</b> iBoot) and that have assertions (<b>DEVELOPMENT</b>/<b>DEBUG</b>). Good for performance
+                </div>
+
+
+                <h3>The yield</h3>
+
+                <p class="cli">
+                    [00:38:43] printing pairs:<br>
+                    [00:38:43] 	PAIR: 001bb168ceece8dd => platform/t8120/tunables/t8120/auto/af_io0lwmuxpipe.c<br>
+                    [00:38:43] 	PAIR: 0033ab8aa11b2bf5 => lib/fs/microkernel/fs.c<br>
+                    [00:38:43] 	PAIR: 003e05f42fd06461 => platform/t8110/tunables/t8112/auto/af_rt1lwmuxpipe.c<br>
+                    [00:38:43] 	PAIR: 0044792db82801d1 => drivers/usb/usb_dfu.c<br>
+                    ...<br>
+                    [00:38:43] total HMACs in iBoots - 1189, total HMACs matched - 390, rate - 32.80%<br>
+                    [00:38:43] average match rate - 9.10%<br>
+                    [00:38:43] no errors, saving...<br>
+                    [00:38:43] DONE!
+                </p>
+
+                <div class="p">
+                    390 good mappings for my dataset and my implementation this far. Some of those also match mappings from the <b>method #1</b>, so the total yield is 586 mappings (<s>or how they used to say in Intel</s> - <s>Pentium</s>)
+                </div>
+
+                <div class="p">
+                    Not a bad result I guess, especially considereing this even includes the files added in recent iBoot versions
+                </div>
+
+                <div class="p">
+                    The entire process takes around 40 minutes on my M4 Mac mini, which I also consider a good result
+                </div>
+
+                
+                <h2>Room for improvements?</h2>
+
+                <div class="p">
+                    The <b>method #1</b> is pretty complete, I believe. The only thing I plan to do is to find relevant Apple T2 iBoots and run the same script against them, too
+                </div>
+
+                <div class="p">
+                    However, the <b>method #2</b> could work out even better with better binary diffing heuristics
+                </div>
+
+                <ul>
+                    <li>Missing <span class="cli">assert()</span> in <b>RELEASE</b> iBoot can dramatically reduce function similarity in eyes of BinDiff/Diaphora/etc. if the function in question is small enough</li>
+
+                    <li>Function outlining doesn't make any good either</li>
+
+                    <li>Might be a good idea to create iBoot-specific heuristics (breadcrumbs, profiling or 🔥🌸 type metadata?)</li>
+                </ul>
+
+                <h2>polinaserial</h2>
+
+                <div class="p">
+                    I published the tool that detects the hashes in serial stream automatically and prints matched filename (if it can). It already contains the mappings from the stolen source and the beta diff. The assert diff as well, but that's loaded separately, since I have less confidence in those
+                </div>
+
+                <div class="p">
+                    It has a lot of other cool features, too
+                </div>
+
+                <div class="p">
+                    Free & open source, available on my <a href="https://github.com/NyanSatan/polinaserial" target="_blank">GitHub</a> (macOS and iOS only)
+                </div>
+
+
+                <h2>Post Scriptum</h2>
+
+                <div class="p">
+                    One funny thing that I noticed while doing all this is that hashes produced by the new algorithm never have the top nibble set, e.g. <span class="cli">0x0b4ebe6fdc23a646</span>. It wasn't the case for the old algorithm
+                </div>
+
+                <div class="p">
+                    Could it mean that the new algo has some kind of cryptographic weakness? Or new script that computes them just cuts the top character off by mistake and nobody in Apple ever noticed it?
+                </div>
+
+
+                <h2>Credits</h2>
+
+                <ul>
+                    <li><a href="https://x.com/b1n4r1b01"><b>@binaryboy</b></a> - for previous research on the topic</li>
+                    <li><a href="https://infosec.space/@siguza"><b>@siguza</b></a> - for providing me with a lot of firmwares</li>
+                </ul>
+
+            </div>
+        </div>
+
+        <footer>
+            john, 2025<br>
+            <a href="https://twitter.com/nyan_satan"><img class="footer" src="/new-common/twitter.png"></a>
+            <a href="https://infosec.exchange/@nyan_satan"><img class="footer" src="/new-common/mastodon.png"></a>
+            <a href="https://github.com/NyanSatan"><img class="footer" src="/new-common/github.png"></a>
+            <a href="mailto:nyansatan@icloud.com"><img class="footer" src="/new-common/mail.png"></a>
+        </footer>
+    </body>
+</html>
