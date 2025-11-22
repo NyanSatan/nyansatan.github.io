@@ -17,6 +17,12 @@ var map =
                 "link" : "https://github.com/NyanSatan/polinaserial"
             },
             {
+                "title" : "SundanceInH2A",
+                "desc" : "Run iOS 6 on iPod touch 3",
+                "picture" : "resources/projects/sundanceh2a.jpg",
+                "link" : "https://github.com/NyanSatan/SundanceInH2A"
+            },
+            {
                 "title" : "Image3 RE",
                 "desc" : "Research on the mysterious Apple A6 ROM exploit that uses flaws in Image3 subsystem. Even though I found a few bugs there, it's not enough",
                 "picture" : "resources/projects/ipsw.png",
