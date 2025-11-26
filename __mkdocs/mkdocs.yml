@@ -1,0 +1,5 @@
+site_name: whatever
+plugins: []
+theme:
+  name: null
+  custom_dir: 'theme/'

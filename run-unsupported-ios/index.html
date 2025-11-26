@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Running unsupported iOS on deprecated devices</title>
+
+        <link rel="stylesheet" href="../new-common/mkdocs.css">
+
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
+        <meta name="format-detection" content="telephone=no">
+        <link rel="icon" href="/apple-touch-icon.png">
+    </head>
+    <body>
+        <div class="text">
+            <h1 id="running-unsupported-ios-on-deprecated-devices">Running unsupported iOS on deprecated devices</h1>
+<style>body { background-color: #2a3c5f; }</style>
+<div class="desc">Created on 26.11.25</div>
+
+<p>Earlier this year I <a href="https://youtu.be/VTbShvf97kI">demoed</a> iOS 6 running on an iPod touch 3 - a device that Apple never gave iOS 6 to, making iOS 5.1.1 the latest build it can run</p>
+<p>A few months later I also released a <a href="https://github.com/NyanSatan/SundanceInH2A">script</a> that generates an iOS 6 restore image installable on that iPod touch model</p>
+<p>This article describes technical details behind this work. Certain proficiency in iOS internals is assumed</p>
+<p><img alt="" src="/resources/projects/sundanceh2a.jpg" /></p>
+<h2 id="ill-show-you-what-ios-is-made-of">I'll show you what iOS is made of</h2>
+<p>First of all, let's recap what software components iOS consists of:</p>
+<ol>
+<li>
+<p><strong>iBoot</strong> - the bootloader. Has 4 different types for different scenarios - iBSS, iBEC, LLB and iBoot</p>
+</li>
+<li>
+<p><strong>Kernelcache</strong> - the OS kernel + kernel extensions (drivers) built into a single binary blob</p>
+</li>
+<li>
+<p><strong>DeviceTree</strong> - structured list of hardware used by specific device model + some parameters that specify software behavior. The copy included in an IPSW is more of a template that is heavily modified by iBoot before jumping into kernel</p>
+</li>
+<li>
+<p>Userspace filesystem - tiny <strong>restore ramdisk</strong> used purely for OS installation or the actual <strong>root filesystem</strong> of iOS installed persistently</p>
+</li>
+<li>
+<p>Various firmwares for coprocessors, be they internal or external to the main SoC - like, baseband, Wi-Fi, Bluetooth, multitouch and etc.</p>
+</li>
+</ol>
+<h2 id="iphone-3gs-tests">iPhone 3GS tests</h2>
+<p>iPhone 3GS was released the same year as iPod touch 3 (2009), and has a very similar hardware (<strong>S5L8920X</strong> SoC vs. <strong>S5L8922X</strong>). But the most important part is that it actually got iOS 6 officially</p>
+<p>Before doing anything on the iPod I decided to try to boot iOS 6.0 with iOS 5.1.1 iBoot &amp; DeviceTree on the iPhone and see what's gonna break and how</p>
+<h2 id="devicetree">DeviceTree</h2>
+<p>The most broken thing was DeviceTree - iOS 6 added a lot of new nodes and properties. To fix it in automated manner I wrote a stupid Python script that decodes and computes a diff between 2 DeviceTrees. Such diff can also be applied to another DeviceTree</p>
+<p>The script is available in the <strong>SundanceInH2A</strong> <a href="https://github.com/NyanSatan/SundanceInH2A/blob/master/dt/ddt.py">repo</a></p>
+<p>As I mentioned above a lot of things in a DeviceTree is filled by iBoot at runtime. One of such new properties is <code>nvram-proxy-data</code> in <code>chosen</code> node</p>
+<p>The property must contain a raw NVRAM dump - leaving it empty will make kernel get stuck somewhere very early</p>
+<p>For iPod touch 3 I also had to clean-up the diff out of iPhone-specific things before applying it to iPod's 5.1.1 DeviceTree</p>
+<h2 id="iboot">iBoot</h2>
+<p>iBoot didn't require any major changes in this case. Just typical Image3 signature check patch, boot-args injection and <code>debug-enabled</code> patch so kernel is going to actually respect AMFI boot-args</p>
+<p>One important thing is to actually populate <code>nvram-proxy-data</code> dynamically, at least for normal boots (aka non-restore). Restore boot will be fine with some random NVRAM hardcoded into DeviceTree, but normal one will overwrite your actual NVRAM with the random one if it decides to sync it at some point</p>
+<p>I do it by replacing a call to <code>UpdateDeviceTree()</code> with my own little function that calls the real <code>UpdateDeviceTree()</code>, but also populates actual <code>nvram-proxy-data</code> and <code>random-seed</code> (this one shouldn't be of any importance)</p>
+<p>For boot-args I always add <code>amfi=0xff</code> to disable code-signing, but that's pretty cannonical as well</p>
+<p>Please note that other iBoot+kernel combos might require more changes - if you ever try something and it doesn't work, I recommend looking into DeviceTree differences (both the initial template and how iBoot fills it) and also <code>boot_args</code> structure iBoot passes to kernel (not to be confused with boot-args <em>string</em>, the <code>boot_args</code> <em>structure</em> is a different thing)</p>
+<h2 id="kernelcache">Kernelcache</h2>
+<p>The most complex part. iPod touch 3 never got iOS 6 officialy, yes, but it was rumored that initially it was meant to have it, but Apple's marketing team said no. Either way, almost every internal iOS 6 build got both standalone S5L8922X kernel and even standalone kexts (including ones specific to iPod touch 3)</p>
+<p>The question is how to load them all simultaneously. My initial idea was to do it just as older Mac OS X could do - load all kexts dynamically on bootloader level. Long story short, my strategy was the following:</p>
+<ol>
+<li>In iBoot context, load all kexts from filesystem - binary itself + Info.plist</li>
+<li>Lay them out in memory and add corresponding entries to <code>chosen/memory-map</code> node of DeviceTree</li>
+<li>Boot standalone kernel which will then pick them up and load</li>
+</ol>
+<p>The sad outcome:</p>
+<pre><code>panic(cpu 0 caller 0x802e5223): &quot;kern_return_t kxld_link_file(KXLDContext *, u_char *, u_long, const char *, void *, KXLDDependency *, u_int, u_char **, kxld_addr_t *) (com.apple.kec.corecrypto) called in kernel without kxld support&quot;
+</code></pre>
+<p>The kernel has all the code to pick them up, but not to actually link...</p>
+<h3 id="glueing-a-prelinked-kernelcache">Glueing a prelinked kernelcache</h3>
+<p>So creating a legit kernelcache is the only way after all. I was already imagining all the horrors of writing software to parse and apply <code>LINKEDIT</code> and etc., but then it occured to me! Mac OS X (before Apple Silicon) was generating such kernelcaches somehow! What if we use that logic to build our iOS kernelcache?</p>
+<pre><code class="language-sh">kcgen \
+    -c output.bin \
+    $(cat n18.10A403.kextlist | sed 's/^/--bundle-id /') \
+    -kernel kernels_kexts_10A63970m/mach.development.s5l8922x \
+    -arch armv7 \
+    -all-personalities \
+    -strip-symbols \
+    -uncompressed \
+    -- \
+    kernels_kexts_10A63970m/Extensions
+</code></pre>
+<p>I used <code>/usr/local/bin/kcgen</code> from internal Sierra build (can be found online as "Phoenix A1708.dmg"), but it seems that even latest macOS <code>kextcache</code> can do it (included by default)</p>
+<p>Here is a breakdown of the options:</p>
+<ul>
+<li>
+<p><code>-c output.bin</code> - output file to write resulting kernelcache to</p>
+</li>
+<li>
+<p><code>$(cat n18.10A403.kextlist | sed 's/^/--bundle-id /')</code> - this weird expression appends <code>--bundle-id</code> to every line from the file at <code>n18.10A403.kextlist</code>. This is to specify which kexts we'd like to include. How I created such list is described below</p>
+</li>
+<li>
+<p><code>-arch armv7</code> - obviously only build armv7 slice</p>
+</li>
+<li>
+<p><code>-all-personalities</code> - very important flag that prevents <em>irrelevant</em> IOKit personalities to be stripped. "Irrelevant" as in "irrelevant to current machine", meaning everything <em>relevant</em> to iPod touch 3 is going to be stripped</p>
+</li>
+<li>
+<p><code>-strip-symbols</code> - strips unnecessary symbols. This flag can be omitted theoretically, but I recommend keeping it to make resulting kernelcache smaller</p>
+</li>
+<li>
+<p><code>-uncompressed</code> - do not apply compression. Since we'll have to change one little thing later, compression would have to be reapplied anyway</p>
+</li>
+<li>
+<p><code>--</code> means the rest of the args will point to directories to grab kexts from</p>
+</li>
+<li>
+<p><code>kernels_kexts_10A63970m/Extensions</code> is a path to a folder containing kexts</p>
+</li>
+</ul>
+<p>The little thing to do is to remove fat header. For some reason, it creates a fat Mach-O with a single slice. iBoot doesn't like it, so let's strip it:</p>
+<pre><code class="language-sh">lipo -thin armv7 output.bin -o output.thin.bin
+</code></pre>
+<p>The kernel cache is ready now! Just needs to be compressed and packaged into Image3 container</p>
+<h4 id="about-kext-lists">About kext lists</h4>
+<p>Once again I compared iPhone 3GS' iOS 5.1.1 vs. 6.0 - some kexts were added, some removed, some changed their bundle IDs, some were irrelevant for iPod touch 3</p>
+<p>Do not forget to include the pseudo-extensions as well!</p>
+<p>Samples can be found in <strong>SundanceInH2A</strong> <a href="https://github.com/NyanSatan/SundanceInH2A/tree/master/kc/kext_lists">repository</a></p>
+<h4 id="about-iokit-personalities">About IOKit personalities</h4>
+<p>In this specific case I had to patch up Info.plist of the Wi-Fi kext. As always there is a sample in the <a href="https://github.com/NyanSatan/SundanceInH2A/blob/master/kc/iokit_personalities.plist">repo</a></p>
+<h2 id="restore-ramdisk-filesystem">Restore ramdisk filesystem</h2>
+<p>Pretty cannonical here. I patched <code>asr</code> as usual and also had to move <code>options.n88.plist</code> to <code>options.n18.plist</code> so it can lay out partitions properly</p>
+<p>However, I also have to install the iBoot exploit. To do that I reimplement <code>rc.boot</code> binary:</p>
+<ol>
+<li>
+<p>Remount ramdisk and set <code>umask</code> just like the original one does</p>
+</li>
+<li>
+<p>Call <code>restored_external</code>, but with <code>-server</code> argument, so it doesn't reboot after finishing restore</p>
+</li>
+<li>
+<p>If restore was completed properly, I add a third partition, write the exploit there and set <code>boot-partition</code> to <code>2</code></p>
+</li>
+<li>
+<p>Reboot the device</p>
+</li>
+</ol>
+<p>My implementation is available guess where? Yes, in the <a href="https://github.com/NyanSatan/SundanceInH2A/tree/master/rc_boot">repository</a></p>
+<h2 id="root-filesystem">Root filesystem</h2>
+<p>This needed a lot of changes:</p>
+<ol>
+<li>
+<p>Add matching SpringBoard's hardware feature plist (<code>/System/Library/CoreServices/SpringBoard.app/N18AP.plist</code> in this case)</p>
+<ul>
+<li>
+<p>I took the iOS 5.1.1 variant as a base and added iOS 6 specific capabilities</p>
+</li>
+<li>
+<p>I tried to keep <em>original</em> enough Home screen icon order by <em>merging</em> iPod touch 3 iOS 5.1.1 and iPod touch 4 6.x layouts</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Add multitouch &amp; Wi-Fi firmwares</p>
+<ul>
+<li>I use versions from 5.1.1</li>
+</ul>
+</li>
+<li>
+<p>Add Bluetooth firmware and scripts</p>
+<ul>
+<li>
+<p>This is more complicated, as those are all hardcoded into <code>/usr/sbin/BlueTool</code></p>
+</li>
+<li>
+<p>Luckily, they can also be overriden by files in <code>/etc/bluetool</code> - as always check my code for reference</p>
+</li>
+<li>
+<p>I extracted both firmware and scripts from 5.1.1 <code>BlueTool</code></p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>FairPlay</strong> daemon is limited to <code>N88AP</code> (iPhone 3GS)</p>
+<ul>
+<li>
+<p>It has <code>LimitLoadToHardware</code> key in its' LaunchDaemon plist</p>
+</li>
+<li>
+<p>But if we simply remove the key, it works on iPod touch 3 as well</p>
+</li>
+<li>
+<p>This is important, because otherwise we cannot activate device through Apple's servers</p>
+</li>
+<li>
+<p>This trick will be harder to pull off on iOS 6.1+ because they load LaunchDaemons from a signed cache. Still can be bypassed in many ways - for instance, patching <code>launchd</code> or forcefully loading another plist via <code>launchctl</code></p>
+</li>
+</ul>
+</li>
+<li>
+<p>DYLD shared cache patches</p>
+<ol>
+<li>
+<p>Product ID map patch</p>
+<ul>
+<li>iOS 6 brings a concept of "product ID" in the form of a long byte sequence</li>
+<li>It is filled by iBoot into <code>product</code> node of DeviceTree (which didn't even exist before)</li>
+<li>I hardcode the value of iPhone 3GS straight into DeviceTree (<code>8784AE8D7066B0F0136BE91DCFE632A436FFD6FB</code>)</li>
+<li>There is also a short form of this identifier - 16-bit integer - which existed before iOS 6</li>
+<li>iPhone 3GS is <code>0x2714</code> and the iPod is <code>0x2715</code></li>
+<li><strong>MobileGestalt</strong> framework has a table that matches the short form by the long one - I swap <code>0x2714</code> with <code>0x2715</code> there</li>
+<li>I believe it's better for iTunes and etc.</li>
+</ul>
+</li>
+<li>
+<p><code>getDeviceVariant()</code> patch</p>
+<ul>
+<li><strong>MobileGestalt</strong> once again messes us up our business</li>
+<li><em>Device variant</em> is a letter - usually "A" or "B"</li>
+<li>It seems to depend on Wi-Fi transciever vendor used in exact device (?)</li>
+<li>iOS 6 fails miserably to determine this value for iPod touch 3</li>
+<li>This crashes activation process, for example</li>
+<li>To fix it, I patch the function to always return "A" (in form of <code>CFString</code>)</li>
+</ul>
+</li>
+<li>
+<p>Fixing code signature</p>
+<ul>
+<li>This is much easier than most people think</li>
+<li>Shared cache files have the same format of signature as normal Mach-Os</li>
+<li>And since it's just ad-hoc, all you need to do is to recalculate SHA-1 hash for pages you modified and update the signature</li>
+<li>So easy, it can be done with just a hex-editor</li>
+</ul>
+</li>
+</ol>
+</li>
+</ol>
+<h2 id="the-iboot-exploit">The iBoot exploit</h2>
+<p>iOS 5 iBoot had a bug in <strong>HFS+</strong> filesystem driver. I did make an exploit many years ago but it was <em>bad</em>. Like, truly <em>bad</em>. I reimplemented it from scratch for this project making it deterministic (hopefully...)</p>
+<p>This subject probably deserves a separate article</p>
+<h2 id="conclusion-future-plans">Conclusion &amp; future plans</h2>
+<p>This was not easy to do, and yet easier than I expected initially</p>
+<p>After releasing the tool many people asked me about jailbreaking. The old tools are not going to work, but it should be easy to just patch the kernel and drop Cydia tarball onto the filesystem. I guess I will give it a try later</p>
+<p>There was another device that Apple dropped support for in that year - iPad 1. I will try that soon enough as well</p>
+<p>I hope that the information from this write-up will help you making other crazy combinations, like iOS 4 on iPhone 4S or iOS 5 on iPad mini 1</p>
+        </div>
+    </body>
+    <footer>
+        john, 2025<br>
+        <a href="https://twitter.com/nyan_satan"><img class="footer" src="/new-common/twitter.png"></a>
+        <a href="https://infosec.exchange/@nyan_satan"><img class="footer" src="/new-common/mastodon.png"></a>
+        <a href="https://github.com/NyanSatan"><img class="footer" src="/new-common/github.png"></a>
+        <a href="mailto:nyansatan@icloud.com"><img class="footer" src="/new-common/mail.png"></a>
+    </footer>
+</html>

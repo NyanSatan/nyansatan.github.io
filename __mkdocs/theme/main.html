@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{% if page.title %}{{ page.title }}{% endif %}</title>
+
+        <link rel="stylesheet" href="{{ "new-common/mkdocs.css"|url }}">
+
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
+        <meta name="format-detection" content="telephone=no">
+        <link rel="icon" href="/apple-touch-icon.png">
+    </head>
+    <body>
+        <div class="text">
+            {{ page.content }}
+        </div>
+    </body>
+    <footer>
+        john, 2025<br>
+        <a href="https://twitter.com/nyan_satan"><img class="footer" src="/new-common/twitter.png"></a>
+        <a href="https://infosec.exchange/@nyan_satan"><img class="footer" src="/new-common/mastodon.png"></a>
+        <a href="https://github.com/NyanSatan"><img class="footer" src="/new-common/github.png"></a>
+        <a href="mailto:nyansatan@icloud.com"><img class="footer" src="/new-common/mail.png"></a>
+    </footer>
+</html>

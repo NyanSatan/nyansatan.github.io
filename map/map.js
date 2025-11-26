@@ -66,6 +66,13 @@ var map =
                 "pinned" : true
             },
             {
+                "title" : "Running unsupported iOS on deprecated devices",
+                "date" : "26.11.25",
+                "desc" : "Technical details of my iOS 6 on iPod touch 3 bring-up",
+                "picture" : "resources/projects/sundanceh2a.jpg",
+                "link" : "run-unsupported-ios"
+            },
+            {
                 "title" : "iBoot log (de)obfuscation",
                 "date" : "27.10.25",
                 "desc" : "Little write-up on iOS 9+ iBoot log obfuscation and what I managed to do about it",
