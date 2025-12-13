@@ -1,5 +1,14 @@
 function iOS() {
-    return !!navigator.platform.match(/iPhone|iPod|iPad/);
+    if (!!navigator.platform.match(/iPhone|iPod/)) {
+        return true;
+    }
+
+    /* this is a fucking iPad! */
+    if (navigator.platform.indexOf("Mac") !== -1 && navigator.maxTouchPoints > 1) {
+        return true;
+    }
+
+    return false;
 }
 
 var colors = [
