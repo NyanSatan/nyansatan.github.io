@@ -11,11 +11,15 @@ function iOS() {
     return false;
 }
 
+function iOS26() {
+    return navigator.userAgent.indexOf("Version/26.") !== -1;
+}
+
 var colors = [
     "#47234d",
     "#001f3f",
-    "#06402b",
-    "#91043c"
+    "#91043c",
+    "#06402b"
 ];
 
 function setBackground() {
@@ -31,7 +35,25 @@ function setBackground() {
     } else {
         var bgElement = document.createElement("div");
         bgElement.className = "fixed-bg";
-        bgElement.style["background"] = gradient;
+        bgElement.style.background = gradient;
+
+        /* I HATE THE ANTICHRIST!!! */
+        if (iOS26()) {
+            var fullHeight = window.screen.height;
+
+            bgElement.style.position = "absolute";
+            bgElement.style.height = fullHeight + 12;
+
+            mainElement = document.querySelector("#main");
+
+            bodyElement.onscroll = function () {
+                bgElement.style.top = Math.min(bodyElement.scrollTop, mainElement.offsetHeight - fullHeight);
+            }
+        } else {
+            bgElement.style.position = "fixed";
+            bgElement.style.height = "100%";
+        }
+
         bodyElement.prepend(bgElement);
     }
 }

@@ -19,10 +19,8 @@ body {
 }
 
 .fixed-bg {
-    height: 100%;
     width: 100%;
     top: 0;
-    position: fixed;
     background-position: center;
     z-index: -1;
 }
