@@ -18,8 +18,7 @@ function iOS26() {
 var colors = [
     "#47234d",
     "#001f3f",
-    "#91043c",
-    "#06402b"
+    "#91043c"
 ];
 
 function setBackground() {
