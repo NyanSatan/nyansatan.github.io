@@ -112,3 +112,12 @@ img {
     display: block;
     background-size: contain;
 }
+
+img.home {
+    width: 32px;
+    height: 32px;
+    vertical-align: middle;
+    border: 2px solid white;
+    border-radius: 8px;
+    padding: 3px;
+}

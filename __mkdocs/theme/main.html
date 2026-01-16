@@ -3,7 +3,7 @@
     <head>
         <title>{% if page.title %}{{ page.title }}{% endif %}</title>
 
-        <link rel="stylesheet" href="{{ "new-common/mkdocs.css"|url }}">
+        <link rel="stylesheet" href="{{ "new-common/mkdocs.css?v=1"|url }}">
 
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
@@ -12,6 +12,9 @@
     </head>
     <body>
         <div class="text">
+            <a href="/" style="float: right;">
+                <img class="home" src="/resources/ui/home-light.png">
+            </a>
             {{ page.content }}
         </div>
     </body>

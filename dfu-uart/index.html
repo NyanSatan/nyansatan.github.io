@@ -3,7 +3,7 @@
 <head>
 
 <link rel="icon" href="../apple-touch-icon.png">
-<link rel="stylesheet" type="text/css" href="../common/general.css">
+<link rel="stylesheet" type="text/css" href="../common/general.css?v=1">
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
@@ -15,6 +15,11 @@
 <body>
 
 <div class="main">
+
+<a href="/" style="float: right;">
+    <img class="home" src="/resources/ui/home.png">
+</a>
+
 <h1>Enabling debug-uarts on DFU-like iBoot</h1>
 
 <span class="cli">debug-uarts</span> is an iBoot variable which sets the UART mode. If it's set to <b>3</b>, iBoot Stage 2 (iBEC, flashable iBoot and iBSS before iOS 5) will send its' log over the serial interface, which may be useful for research purposes:<br><br>

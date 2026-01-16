@@ -98,3 +98,10 @@ div.desc {
 	text-align: center;
 	color: gray;
 }
+
+img.home {
+    margin: 12px;
+    width: 32px;
+    height: 32px;
+    vertical-align: middle;
+}
