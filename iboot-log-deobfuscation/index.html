@@ -10,7 +10,7 @@
             footer {
                 background-color: #140e20 !important;
             }
-        
+
             h2 {
                 font-family: Merriweather;
                 margin-top: 3px;
@@ -36,7 +36,7 @@
             p.cli {
                 background-color: #140e20 !important;
             }
-            
+
             span.cli {
                 font-size: 12pt !important;
                 padding: 0 2px !important;
@@ -45,8 +45,8 @@
             }
 
             img.home {
-                width: 32px;
-                height: 32px;
+                width: 30px !important;
+                height: 30px !important;
                 vertical-align: middle;
                 border: 2px solid;
                 border-radius: 8px;
@@ -58,7 +58,7 @@
         <link rel="stylesheet" type="text/css" href="/new-common/general.css?v=1">
 
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1"> 
+        <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
         <meta name="format-detection" content="telephone=no">
 
         <title>iBoot log (de)obfuscation</title>
@@ -120,7 +120,7 @@
                 </div>
 
                 <img class="align" src="resources/old_polinaserial.jpg">
-                
+
                 <div class="p">
                     Unfortunately, shortly after the leak Apple changed either the hashing algorithm or at least the start value. Because of this, the program became useless against late iOS 11 builds and all the newer ones
                 </div>
@@ -235,14 +235,14 @@
                             <li>Dead easy to do - find all strings that look like a path (e.g. <span class="cli">drivers/apple/mailbox/mailbox64.c</span>) and code XREFs to them</li>
                         </ul>
                     </li>
-                    
+
                     <li>
                         Find all functions that print a hash in <b>RELEASE</b> counterpart
                         <ul>
                             <li>Also nothing complex - look for all <span class="cli">MOV</span> instructions with a large immediate with high entropy as second operand</li>
                         </ul>
                     </li>
-                    
+
                     <li>
                         Diff all the functions from 2 images against each other so we can map a function from <b>DEVELOPMENT</b>/<b>DEBUG</b> iBoot to the same one in <b>RELEASE</b>
                         <ul>
@@ -253,7 +253,7 @@
 
                     <li>
                         From such map we can then derive a map of <span class="cli">hash => filename</span> that we want
-                            
+
                         <ul>
                             <li>Also needs checks for possible collisions (which are obvious signs of mistakes)</li>
                         </ul>
@@ -337,7 +337,7 @@
                     The entire process takes around 40 minutes on my M4 Mac mini, which I also consider a good result
                 </div>
 
-                
+
                 <h2>Room for improvements?</h2>
 
                 <div class="p">

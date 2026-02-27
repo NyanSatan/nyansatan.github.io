@@ -11,8 +11,8 @@ div.tab {
     vertical-align: middle;
     line-height: 50px;
     padding: 0 15px;
-    -webkit-box-sizing: border-box;  
-    -moz-box-sizing: border-box;  
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
     box-sizing: border-box;
     white-space: nowrap;
     font-family: OpenSans;
@@ -106,9 +106,12 @@ img.twitter-pfp {
 }
 
 img.twitter-logo {
-    display: inline-block;
     width: 32px;
     height: 32px;
+}
+
+div.twitter-logo-container {
+    display: inline-block;
     position: absolute;
     right: 0;
 }
