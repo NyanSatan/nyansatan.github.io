@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Turning Apple retail technician's cables into JTAG probes</title>
+
+        <link rel="stylesheet" href="../new-common/mkdocs.css?v=2">
+
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
+        <meta name="format-detection" content="telephone=no">
+        <link rel="icon" href="/apple-touch-icon.png">
+    </head>
+    <body>
+        <div class="text">
+            <a href="/" style="float: right;">
+                <img class="home" src="/resources/ui/home-light.png">
+            </a>
+            <h1 id="turning-apple-retail-technicians-cables-into-jtag-probes">Turning Apple retail technician's cables into JTAG probes</h1>
+<style>body { background-color: #b05e00; }</style>
+<div class="desc">Created on 2.3.26</div>
+
+<p><em><strong>Important note</strong>: information described in this article is potentially DANGEROUS! Apply this knowledge only if you understand what you are doing. I assume you know basic ARM assembly and reverse engineering. If you break something, it's not my fault!</em></p>
+<p>Apple uses their own SWD probes to debug hardware internally. There are many different kinds of probes out there, but the 2 most famous are <strong>Kanzi</strong> (Lightning) and <strong>Chimp</strong> (USB-C)</p>
+<p><img alt="" src="resources/kanzi_chimp.jpg" /></p>
+<p>Both those probes have their <em>evil</em> twins - <strong>Nova</strong> (commonly known as <strong>Serial Number Reader</strong> or just <strong>SNR</strong>) and <strong>USB-C Diagnostic Tool</strong> (or <strong>UDT</strong>)</p>
+<p><img alt="" src="resources/nova_udt.jpg" /></p>
+<p>These are used by Apple's retail technicians (and their partners) to read serial numbers from dead devices and etc. This means they are more commonly available on gray/black markets than real Kanzi/Chimp/etc.</p>
+<p>As you likely understood already, these cables are very similar hardware to the actual SWD debug probes, and thus can be repurposed accordingly. This article describes various techniques you can make use of in order to achieve that</p>
+<p>No breaking news here, most of those techniques were known for ages, although never properly documented</p>
+<h2 id="kanzi-vs-nova">Kanzi vs. Nova</h2>
+<p><strong>Astris</strong> (the <em>AppleInternal</em> debugging software kit) detects USB probes by their <strong>VID</strong> (<strong>V</strong>endor <strong>ID</strong>) and <strong>PID</strong> (<strong>P</strong>roduct <strong>ID</strong>). To be more precise, Astris has a probe server daemon <code>astrisprobed</code> that handles that</p>
+<p>Original Kanzi has PID <code>0x1621</code> and SNR/Nova has <code>0x1624</code>. Both have standard Apple USB VID - <code>0x5AC</code></p>
+<p><code>astrisprobed</code> only knows <code>0x1621</code> and not <code>0x1624</code> and thus totally ignores Nova. There are multiple ways to fix it</p>
+<h3 id="patch-astrisprobed-statically">Patch astrisprobed statically</h3>
+<p>The old method is to patch <code>astrisprobed</code> to recognize PID <code>0x1624</code> instead of <code>0x1621</code>. It's a static data patch and doesn't even need any disassembler. In hex-editor replace all occurences of <code>AC 05 21 16</code> with <code>AC 05 24 16</code> - older versions had 2 occurences per fat Mach-O slice, newer - only one. Also needs a code-signature fix on somewhat modern Mac OS X</p>
+<h3 id="patch-astrisprobed-dynamically">Patch astrisprobed dynamically</h3>
+<p>Slightly newer method is to apply this patch dynamically via custom daemon that does <code>task_for_pid()</code> against the probe server daemon. This is troublesome on modern Mac OS X since <code>astrisprobed</code> is signed by Apple and thus considered a platform binary and thus a subject to <strong>SIP</strong> (<strong>S</strong>ystem <strong>I</strong>ntegrity <strong>P</strong>rotection)</p>
+<p>These two methods have another big downside - original Kanzi won't be detected anymore unless you undo the patch. So if you have both Kanzi and Nova in your employ - this is going to be pain. So at some point I came up with another method</p>
+<h3 id="swap-the-usb-product-id-via-appleusbmergenub">Swap the USB Product ID via AppleUSBMergeNub</h3>
+<p><code>AppleUSBMergeNub</code> lets us swap properties of USB devices dynamically. Yes, including PID. So all it takes is to make a little kext (kernel extension) that will utilize it. There is no need for any code even, just a special entry in <code>Info.plist</code></p>
+<pre><code>    &lt;key&gt;IOKitPersonalities&lt;/key&gt;
+    &lt;dict&gt;
+        &lt;key&gt;Nova&lt;/key&gt;
+        &lt;dict&gt;
+            &lt;key&gt;CFBundleIdentifier&lt;/key&gt;
+            &lt;string&gt;com.apple.driver.AppleUSBMergeNub&lt;/string&gt;
+            &lt;key&gt;IOClass&lt;/key&gt;
+            &lt;string&gt;AppleUSBMergeNub&lt;/string&gt;
+            &lt;key&gt;IOProviderClass&lt;/key&gt;
+            &lt;string&gt;IOUSBDevice&lt;/string&gt;
+            &lt;key&gt;IOProviderMergeProperties&lt;/key&gt;
+            &lt;dict&gt;
+                &lt;key&gt;idProduct&lt;/key&gt;
+                &lt;integer&gt;5665&lt;/integer&gt; &lt;--- PID to swap with
+            &lt;/dict&gt;
+            &lt;key&gt;idProduct&lt;/key&gt;    &lt;--- PID to match against
+            &lt;integer&gt;5668&lt;/integer&gt;
+            &lt;key&gt;idVendor&lt;/key&gt;
+            &lt;integer&gt;1452&lt;/integer&gt; &lt;--- VID to match against
+        &lt;/dict&gt;
+    &lt;/dict&gt;
+</code></pre>
+<p>However loading kexts, even codeless, is also a major trouble on modern Macs, especially Apple Silicon</p>
+<p>There is one more way that I also consider the most convinient - firmware patching</p>
+<h2 id="anatomy-of-kanzi-firmware">Anatomy of Kanzi firmware</h2>
+<p>Kanzi (Koba, Chimp, Koko &amp; their derivatives) firmwares don't really have any containers, but yet still have to follow certain rules:</p>
+<ol>
+<li>
+<p>First <code>0x4000</code> bytes are reserved for bootloader (<strong>KanziBoot</strong>, <strong>ChimpBoot</strong> &amp; <strong>KokoBoot</strong> - they are all pretty much the same)</p>
+<ol>
+<li>Bootloader is NOT updated normally...</li>
+<li>...however still has to be present in firmware image you wish to flash</li>
+<li>It is updatable over SWD though, but usually you wouldn't want to do it</li>
+</ol>
+</li>
+<li>
+<p>Starting from offset <code>0x4000</code> there comes an actual firmware</p>
+<ol>
+<li>At offset <code>0x1C</code> there is length of the firmware</li>
+</ol>
+</li>
+<li>
+<p>Bootloader calculates CRC32 sum of the firmware</p>
+<ol>
+<li>The last 32-bits of the firmware must be set to a value that makes the final checksum equal to <code>0</code></li>
+<li>If the final sum is not <code>0</code>, firmware is considered broken, and bootloader enters firmware upgrade mode instead of jumping there</li>
+</ol>
+</li>
+<li>
+<p>This means we have to fix up those 32 bits shall we apply any patches</p>
+<ol>
+<li>For your convinience I have a tool for that - <strong>kblcrcfix</strong>, part of <a href="https://github.com/NyanSatan/kanzitools"><strong>kanzitools</strong></a> project of mine</li>
+</ol>
+</li>
+</ol>
+<h2 id="nova-patch">Nova patch</h2>
+<p>I assume you have a firmware image on hands. If not, you can either dump it with <strong>kblctl</strong> (part of <a href="https://github.com/NyanSatan/kanzitools"><strong>kanzitools</strong></a> as well), or just find dumps online</p>
+<p>Kanzi/Nova uses <strong>STM32F407</strong> microcontroller that is based on ARM Cortex-M4 CPU, so in IDA you have to set 32-bit ARM Little-Endian architecture</p>
+<p>Find this place in the disassembly. Might look slightly different in older versions (before <code>1.xx</code> series), but the logic is going to be pretty much the same</p>
+<p><img alt="" src="resources/kanzi_fw_patch_decomp.png" /></p>
+<p>As you likely understood already it is the place where they assign <code>0x1624</code> PID if running on SNR cable. Here is how it looks in ARM assembly:</p>
+<p><img alt="" src="resources/kanzi_fw_patch_disasm.png" /></p>
+<p><code>MOVS R1, #0x24</code> is <code>24 21</code> in hex, and you have to replace it with <code>MOVS R1, #0x21</code> or <code>21 21</code> in hex</p>
+<p><em>I find it kind of ironic that <code>MOVS R1, #0xYY</code> is <code>YY 21</code> in machine code, given the context</em></p>
+<p>After applying the patch to a firmware image, you have to fix up the CRC thing with <strong>kblcrcfix</strong> as stated above</p>
+<p>In order to flash it you can use either native <strong>astrisctl</strong> or <strong>kblctl</strong> from <a href="https://github.com/NyanSatan/kanzitools"><strong>kanzitools</strong></a></p>
+<p>In both cases you will need to enter bootloader mode first - there is a little button in the LED hole. You can push it gently with an iPhone SIM ejector or a needle. If you see that the LED started flashing orange instead of usual green, it successfully entered the bootloader mode</p>
+<p>After flashing the firmware your SNR cable should get <code>0x1621</code> USB PID and thus be recognizable with Astris</p>
+<p><strong>Important</strong>: <strong>KanziBoot</strong> is hard to kill, so even if you mess up your firmware patch so hard it won't work anymore, you should always be able to go back into bootloader mode by pressing the button and flash a good firmware</p>
+<h2 id="udt-patch">UDT patch</h2>
+<p>If you patch <code>astrisprobed</code> to recognize PID <code>0x168C</code> as Chimp (PID <code>0x162C</code>), UDT <em>will</em> be recognized by Astris, yes, but will still fail to explore anything. Not even serial console is going to work. Seems that Apple tried to limit their layman's cable from real JTAG probe functionality this time</p>
+<p>First solution that I found was flashing a super old firmware that simply doesn't know anything about UDT. <code>0.36</code> &amp; <code>0.38</code> are the best for the purpose, and yes, they really make it work! However, this is a half-measure...</p>
+<p>Then I briefly analyzed Chimp firmware and found out that it recognizes UDTs by board revision value. My <code>5XXXXX</code> UDT reported revision <code>4</code> and my real <code>4XXXXX</code> Chimp reported <code>3</code>. So I patched the firmware to always think it's board rev <code>3</code>. And it all just worked!</p>
+<p>Unfortunately, when I put my hands on <code>7XXXXX</code> UDTs (some of them still might have <code>5XXXXX</code> serial numbers on enclosure engravings for some reason), the board revision trick still worked, but the probes could no longer access their EEPROM (little non-volatile storage), so they could neither access NVRAM (where environment variables go) nor even their own serial number (it was <code>ChimpSWD-000000</code> in Astris)</p>
+<p>I made another little dive into the firmware. Look at this piece of code:</p>
+<p><img alt="" src="resources/chimp_fw_is_udt_call.png" /></p>
+<p>So if <code>sub_B504</code> returns <code>1</code>, it assigns UDT PID! I'm pretty certain this function checks if it's running on a UDT</p>
+<p><img alt="" src="resources/is_udt_func.png" /></p>
+<p>As far as I understood, certain board revisions are reserved for UDT, and the rest are for proper Chimp, so this function checks on that. In any case we can patch this function to always return <code>0</code></p>
+<pre><code>MOVS    R0, #0x0
+BX      LR
+</code></pre>
+<p>...or <code>00 20 70 47</code> in hex</p>
+<p>You must patch the function itself, rather than patching the call where they assign USB PID, because it's called in multiple places</p>
+<p>I believe it's a better solution than swapping board revision either via firmware patch or by moving resistors on PCB, since it's more universal</p>
+<p>That being said, the UDT check is implemented as a separate function only in newer versions (around <code>1.14</code> and newer). Before that they checked for board revision being 4, and such checks were inlined, so the best way for older firmwares is still patching the function that reads board revision to always return <code>3</code></p>
+<p>In any case, don't forget to fix the CRC thing with <strong>kblcrcfix</strong> before flashing</p>
+<h3 id="flashing-udt-firmware">Flashing UDT firmware</h3>
+<p>UDT's enclosure doesn't have any holes except for the micro-USB port. That means there is no button to press</p>
+<p>However, you can patch <code>astrisprobed</code> to recognize <code>0x168C</code> PID and use <code>probeenterdfu</code> (<a href="https://github.com/NyanSatan/kanzitools"><strong>kanzitools</strong></a> again, yes) to make it enter bootloader, so you can freely flash patched firmware from there</p>
+<p><em><strong>Important</strong>: make absolutely sure your patches are correct! If you render your firmware non-functional, there won't be an easy way to enter the bootloader and fix it. However, the button is still there, but it's hidden by the bottom piece of the enclosure. It's doable to remove it without major cosmetic damage, so in the worst case scenario you can still do that</em></p>
+        </div>
+    </body>
+    <footer>
+        john, 2026<br>
+        <a href="https://twitter.com/nyan_satan"><img class="footer" src="/new-common/twitter.png"></a>
+        <a href="https://infosec.exchange/@nyan_satan"><img class="footer" src="/new-common/mastodon.png"></a>
+        <a href="https://github.com/NyanSatan"><img class="footer" src="/new-common/github.png"></a>
+        <a href="mailto:nyansatan@icloud.com"><img class="footer" src="/new-common/mail.png"></a>
+    </footer>
+</html>

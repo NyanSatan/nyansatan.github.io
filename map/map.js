@@ -1,58 +1,5 @@
 var map =
 {
-    "projects" : {
-        "template" : "templates/project.html",
-        "desc" : "Most notable software projects of mine. Check my GitHub profile for the rest of them",
-        "posts" : [
-            {
-                "title" : "Anya",
-                "desc" : "(Ab)uses hardware debugging available on preproduction prototypes of Apple devices to decrypt production iOS firmwares",
-                "picture" : "resources/projects/anya.png",
-                "link" : "https://github.com/NyanSatan/Anya"
-            },
-            {
-                "title" : "polinaserial",
-                "desc" : "Serial port monitor program for Mac OS X (and derivative platforms) with lolcat, iBoot logs deobfuscation & many more features. Oriented on iOS hacking and research",
-                "picture" : "resources/projects/polinaserial.jpg",
-                "link" : "https://github.com/NyanSatan/polinaserial"
-            },
-            {
-                "title" : "SundanceInH2A",
-                "desc" : "Run iOS 6 on iPod touch 3",
-                "picture" : "resources/projects/sundanceh2a.jpg",
-                "link" : "https://github.com/NyanSatan/SundanceInH2A"
-            },
-            {
-                "title" : "Image3 RE",
-                "desc" : "Research on the mysterious Apple A6 ROM exploit that uses flaws in Image3 subsystem. Even though I found a few bugs there, it's not enough",
-                "picture" : "resources/projects/ipsw.png",
-                "link" : "https://github.com/NyanSatan/Image3RE"
-            },
-            {
-                "title" : "S5Late-8723",
-                "desc" : "iPod nano 6 port of the new ROM exploit by @__gsch - S5Late, which is originally made for nano 7. Also supports iPod shuffle 4",
-                "picture" : "resources/projects/ipodnano6.png",
-                "link" : "https://github.com/NyanSatan/S5Late-8723"
-            },
-            {
-                "title" : "S5L8442Pwnage2",
-                "desc" : "iPod shuffle 3 port of the ancient Pwnage 2.0 bootrom exploit that was initially released back in 2008",
-                "picture" : "resources/projects/ipodshuffle3.png",
-                "link" : "https://github.com/NyanSatan/S5L8442Pwnage2"
-            },
-            {
-                "title" : "kanzitools",
-                "desc" : "Kit of utilities for interacting with various aspects of Apple's own hardware debugger - KanziSWD (and its' derivatives)",
-                "link" : "https://github.com/NyanSatan/kanzitools"
-            },
-            {
-                "title" : "checkm8_bootkit",
-                "desc" : "Little tool that implements protocol of the original ipwndfu checkm8 shellcode. Apart from firmware decryption and demotion, it allows you to boot arbitrary 2nd-stage iBoot without any changes to the original exploit",
-                "link" : "https://github.com/NyanSatan/checkm8_bootkit"
-            }
-        ]
-    },
-
     "articles" : {
         "template" : "templates/article.html?v=2",
         "desc" : "Various write-ups & tutorials - I mostly cover low level iOS-related things",
@@ -64,6 +11,13 @@ var map =
                 "picture" : "resources/articles/dualboot.jpg",
                 "link" : "dualboot",
                 "pinned" : true
+            },
+            {
+                "title" : "Turning Apple retail technician's cables into JTAG probes",
+                "date" : "2.3.26",
+                "desc" : "How to turn SNR & UDT into Kanzi & Chimp - a small overview with focus on firmware patching methods",
+                "picture" : "resources/articles/kanzi-chimp.jpg",
+                "link" : "snr-udt-fw-patching"
             },
             {
                 "title" : "Running unsupported iOS on deprecated devices",
@@ -145,8 +99,61 @@ var map =
         ]
     },
 
+    "projects" : {
+        "template" : "templates/project.html",
+        "desc" : "Most notable software projects of mine. Check my GitHub profile for the rest of them",
+        "posts" : [
+            {
+                "title" : "Anya",
+                "desc" : "(Ab)uses hardware debugging available on preproduction prototypes of Apple devices to decrypt production iOS firmwares",
+                "picture" : "resources/projects/anya.png",
+                "link" : "https://github.com/NyanSatan/Anya"
+            },
+            {
+                "title" : "polinaserial",
+                "desc" : "Serial port monitor program for Mac OS X (and derivative platforms) with lolcat, iBoot logs deobfuscation & many more features. Oriented on iOS hacking and research",
+                "picture" : "resources/projects/polinaserial.jpg",
+                "link" : "https://github.com/NyanSatan/polinaserial"
+            },
+            {
+                "title" : "SundanceInH2A",
+                "desc" : "Run iOS 6 on iPod touch 3",
+                "picture" : "resources/projects/sundanceh2a.jpg",
+                "link" : "https://github.com/NyanSatan/SundanceInH2A"
+            },
+            {
+                "title" : "Image3 RE",
+                "desc" : "Research on the mysterious Apple A6 ROM exploit that uses flaws in Image3 subsystem. Even though I found a few bugs there, it's not enough",
+                "picture" : "resources/projects/ipsw.png",
+                "link" : "https://github.com/NyanSatan/Image3RE"
+            },
+            {
+                "title" : "S5Late-8723",
+                "desc" : "iPod nano 6 port of the new ROM exploit by @__gsch - S5Late, which is originally made for nano 7. Also supports iPod shuffle 4",
+                "picture" : "resources/projects/ipodnano6.png",
+                "link" : "https://github.com/NyanSatan/S5Late-8723"
+            },
+            {
+                "title" : "S5L8442Pwnage2",
+                "desc" : "iPod shuffle 3 port of the ancient Pwnage 2.0 bootrom exploit that was initially released back in 2008",
+                "picture" : "resources/projects/ipodshuffle3.png",
+                "link" : "https://github.com/NyanSatan/S5L8442Pwnage2"
+            },
+            {
+                "title" : "kanzitools",
+                "desc" : "Kit of utilities for interacting with various aspects of Apple's own hardware debugger - KanziSWD (and its' derivatives)",
+                "link" : "https://github.com/NyanSatan/kanzitools"
+            },
+            {
+                "title" : "checkm8_bootkit",
+                "desc" : "Little tool that implements protocol of the original ipwndfu checkm8 shellcode. Apart from firmware decryption and demotion, it allows you to boot arbitrary 2nd-stage iBoot without any changes to the original exploit",
+                "link" : "https://github.com/NyanSatan/checkm8_bootkit"
+            }
+        ]
+    },
+
     "threads" : {
-        "template" : "templates/thread.html?v=1",
+        "template" : "templates/thread.html?v=2",
         "desc" : "Twitter threads - I write them if the information is too little to have its' own article",
         "posts" : [
             {
