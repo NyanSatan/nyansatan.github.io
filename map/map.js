@@ -117,31 +117,31 @@ var map =
             },
             {
                 "title" : "SundanceInH2A",
-                "desc" : "Run iOS 6 on iPod touch 3",
+                "desc" : "Run iOS 6 on iPod touch 3 & iPad 1",
                 "picture" : "resources/projects/sundanceh2a.jpg",
                 "link" : "https://github.com/NyanSatan/SundanceInH2A"
             },
             {
                 "title" : "Image3 RE",
-                "desc" : "Research on the mysterious Apple A6 ROM exploit that uses flaws in Image3 subsystem. Even though I found a few bugs there, it's not enough",
+                "desc" : "Research notes & tools on the mysterious Apple A6 bootrom exploit that uses flaws in Image3 subsystem. Even though I found a few bugs there, it was not enough...",
                 "picture" : "resources/projects/ipsw.png",
                 "link" : "https://github.com/NyanSatan/Image3RE"
             },
             {
                 "title" : "S5Late-8723",
-                "desc" : "iPod nano 6 port of the new ROM exploit by @__gsch - S5Late, which is originally made for nano 7. Also supports iPod shuffle 4",
+                "desc" : "iPod nano 6 port of the new ROM exploit by @__gsch - S5Late, which is originally made for nano 7. Also supports iPod nano 7 & iPod shuffle 4",
                 "picture" : "resources/projects/ipodnano6.png",
                 "link" : "https://github.com/NyanSatan/S5Late-8723"
             },
             {
                 "title" : "S5L8442Pwnage2",
-                "desc" : "iPod shuffle 3 port of the ancient Pwnage 2.0 bootrom exploit that was initially released back in 2008",
+                "desc" : "iPod shuffle 3 port of the ancient Pwnage 2.0 bootrom exploit (was initially released back in 2008 for 1st-gen iOS devices)",
                 "picture" : "resources/projects/ipodshuffle3.png",
                 "link" : "https://github.com/NyanSatan/S5L8442Pwnage2"
             },
             {
                 "title" : "kanzitools",
-                "desc" : "Kit of utilities for interacting with various aspects of Apple's own hardware debugger - KanziSWD (and its' derivatives)",
+                "desc" : "Software toolkit for interacting with various aspects of Apple's own hardware debugger - KanziSWD (and its' derivatives)",
                 "link" : "https://github.com/NyanSatan/kanzitools"
             },
             {
