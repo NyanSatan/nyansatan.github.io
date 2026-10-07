@@ -11,8 +11,8 @@ function iOS() {
     return false;
 }
 
-function iOS26() {
-    return navigator.userAgent.indexOf("Version/26.") !== -1;
+function isLiquidGlass() {
+    return navigator.userAgent.indexOf("Version/26.") !== -1 || navigator.userAgent.indexOf("Version/27.") !== -1;
 }
 
 var colors = [
@@ -37,7 +37,7 @@ function setBackground() {
         bgElement.style.background = gradient;
 
         /* I HATE THE ANTICHRIST!!! */
-        if (iOS26()) {
+        if (isLiquidGlass()) {
             var fullHeight = window.screen.height;
 
             bgElement.style.position = "absolute";
